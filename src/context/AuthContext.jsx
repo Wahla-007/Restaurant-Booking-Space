@@ -187,13 +187,87 @@ export const AuthProvider = ({ children }) => {
         return { success: true };
     };
 
+    // --- Quick Login / Guest Flow ---
+
+    const requestLoginOTP = async (email) => {
+        const cleanEmail = email.trim().toLowerCase();
+
+        // 1. Check if user exists
+        const { data: users } = await supabase.from('users').select('*').eq('email', cleanEmail).limit(1);
+        let user = users?.[0];
+
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
+        if (user) {
+            // Existing user: Update OTP
+            await supabase.from('users').update({ verification_token: otp }).eq('id', user.id);
+        } else {
+            // New user: Create account
+            // Generate a name from email (e.g. "john" from "john@doe.com")
+            const nameFromEmail = cleanEmail.split('@')[0];
+            const { data: newUser, error } = await supabase
+                .from('users')
+                .insert([{
+                    email: cleanEmail,
+                    name: nameFromEmail, // Placeholder name
+                    password: 'GUEST_LOGIN_' + Date.now(), // Placeholder
+                    avatar: `https://ui-avatars.com/api/?name=${nameFromEmail}&background=random`,
+                    is_verified: false,
+                    verification_token: otp
+                }])
+                .select()
+                .single();
+
+            if (error) return { success: false, message: 'Failed to create guest account.' };
+            user = newUser; // though asking for it again isn't strictly needed if we trust insert
+        }
+
+        // 2. Send Email
+        const SERVICE_ID = 'service_wcykj6j';
+        const TEMPLATE_ID = 'template_2ou7h3b';
+        const PUBLIC_KEY = '3cenvoR92dSsx7chn';
+
+        try {
+            await emailjs.send(SERVICE_ID, TEMPLATE_ID, {
+                email: cleanEmail,
+                to_name: user?.name || 'Guest',
+                otp: otp,
+                time: new Date().toLocaleTimeString()
+            }, PUBLIC_KEY);
+            return { success: true };
+        } catch (error) {
+            const errorMsg = error.text || error.message;
+            return { success: false, message: `Email failed: ${errorMsg}` };
+        }
+    };
+
+    const verifyLoginOTP = async (email, otp) => {
+        const cleanEmail = email.trim().toLowerCase();
+        // Verifies OTP and Logs User In
+        const { data: users } = await supabase.from('users').select('*').eq('email', cleanEmail).limit(1);
+        const user = users?.[0];
+
+        if (!user) return { success: false, message: 'User not found.' };
+        if (user.verification_token !== otp) return { success: false, message: 'Invalid code.' };
+
+        // Verify & Consume Token
+        await supabase.from('users').update({ is_verified: true, verification_token: null }).eq('id', user.id);
+
+        // Log In
+        const { password: _, ...userWithoutPass } = user;
+        setUser(userWithoutPass);
+        localStorage.setItem('session_v1', JSON.stringify(userWithoutPass));
+
+        return { success: true };
+    };
+
     const logout = () => {
         setUser(null);
         localStorage.removeItem('session_v1');
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, signup, verifyAccount, logout }}>
+        <AuthContext.Provider value={{ user, login, signup, verifyAccount, requestLoginOTP, verifyLoginOTP, logout }}>
             {children}
         </AuthContext.Provider>
     );
