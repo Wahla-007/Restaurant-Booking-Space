@@ -19,7 +19,11 @@ export default function Login() {
         try {
             const result = await login(email, password);
             if (result.success) {
-                navigate('/'); // Go home
+                if (result.role === 'business') {
+                    navigate('/business-dashboard');
+                } else {
+                    navigate('/'); // Go home
+                }
             } else {
                 setError(result.message);
             }

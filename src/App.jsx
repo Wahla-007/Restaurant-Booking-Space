@@ -5,6 +5,8 @@ import RestaurantDetails from './pages/RestaurantDetails';
 import VerifyEmail from './pages/VerifyEmail';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import BusinessSignup from './pages/BusinessSignup';
+import BusinessDashboard from './pages/BusinessDashboard';
 import { AuthProvider } from './context/AuthContext';
 
 function App() {
@@ -17,7 +19,9 @@ function App() {
           <Route path="/restaurant/:id" element={<RestaurantDetails />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/business/signup" element={<BusinessSignup />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/business-dashboard" element={<BusinessDashboard />} />
         </Routes>
       </div>
     </AuthProvider>

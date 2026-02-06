@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }) => {
             return { success: false, message: 'Invalid email or password.' };
         }
 
-        if (!foundUser.is_verified) { // Note: DB column usually snake_case
+        if (!foundUser.is_verified) {
             return { success: false, message: 'Please verify your email address to log in.' };
         }
 
@@ -68,10 +68,12 @@ export const AuthProvider = ({ children }) => {
         const { password: _, ...userWithoutPass } = foundUser;
         setUser(userWithoutPass);
         localStorage.setItem('session_v1', JSON.stringify(userWithoutPass));
-        return { success: true };
+
+        // Return user role so UI can redirect accordingly
+        return { success: true, role: foundUser.role || 'customer' };
     };
 
-    const signup = async (name, email, password) => {
+    const signup = async (name, email, password, role = 'customer') => {
         // 1. Input Sanitization & Validation
         if (!name || !email || !password) {
             return { success: false, message: 'All fields are required.' };
@@ -111,6 +113,7 @@ export const AuthProvider = ({ children }) => {
                     name: cleanName,
                     email: cleanEmail,
                     password: password, // Storing plain for this specific demo flow (Use Supabase Auth normally!)
+                    role: role, // 'customer' or 'business'
                     avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanName)}&background=random`,
                     is_verified: false,
                     verification_token: otp
