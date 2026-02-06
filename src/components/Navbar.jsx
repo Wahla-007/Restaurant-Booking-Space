@@ -12,7 +12,13 @@ export default function Navbar() {
                 <h1
                     className="title-gradient"
                     style={{ margin: 0, fontSize: '1.5rem', letterSpacing: '-0.5px', cursor: 'pointer' }}
-                    onClick={() => navigate('/')}
+                    onClick={() => {
+                        if (user?.role === 'business') {
+                            navigate('/business-dashboard');
+                        } else {
+                            navigate('/');
+                        }
+                    }}
                 >
                     LuxeTable
                 </h1>

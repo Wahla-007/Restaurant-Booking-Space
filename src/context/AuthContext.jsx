@@ -187,7 +187,7 @@ export const AuthProvider = ({ children }) => {
         setUser(userWithoutPass);
         localStorage.setItem('session_v1', JSON.stringify(userWithoutPass));
 
-        return { success: true };
+        return { success: true, role: user.role || 'customer' };
     };
 
     // --- Quick Login / Guest Flow ---

@@ -50,7 +50,11 @@ export default function VerifyEmail() {
                 setStatus('success');
                 // Auto-redirect after 2 seconds
                 setTimeout(() => {
-                    navigate('/');
+                    if (result.role === 'business') {
+                        navigate('/business-dashboard');
+                    } else {
+                        navigate('/');
+                    }
                 }, 2000);
             } else {
                 setStatus('error');
@@ -121,7 +125,7 @@ export default function VerifyEmail() {
                             Your account has been verified. Redirecting...
                         </p>
                         <button onClick={() => navigate('/')} className="btn btn-primary" style={{ width: '100%' }}>
-                            Go to Home
+                            Go to Dashboard
                         </button>
                     </div>
                 )}

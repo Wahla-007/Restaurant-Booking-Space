@@ -1,50 +1,77 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { restaurants } from '../data/restaurants';
+// import { restaurants } from '../data/restaurants'; // No longer needed
 import BookingWidget from '../components/BookingWidget';
 import ReviewModal from '../components/ReviewModal';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabase';
 import { MapPin, ChefHat, Star, PenLine } from 'lucide-react';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+
 
 export default function RestaurantDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
-    const restaurant = restaurants.find(r => r.id === parseInt(id));
-    const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
+
+    // State
+    const [restaurant, setRestaurant] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [dbReviews, setDbReviews] = useState([]);
+    const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
 
-    const averageRating = dbReviews.length > 0
-        ? (dbReviews.reduce((acc, r) => acc + r.rating, 0) / dbReviews.length).toFixed(1)
-        : 0;
-
-    const reviewCount = dbReviews.length;
-
-    const fetchReviews = async () => {
-        if (!restaurant) return;
-
+    // Fetch Reviews Function (for initial load and refresh)
+    const fetchReviews = async (restaurantId) => {
+        if (!restaurantId) return;
         try {
             const { data, error } = await supabase
                 .from('reviews')
                 .select('*')
-                .eq('restaurant_id', restaurant.id)
+                .eq('restaurant_id', restaurantId)
                 .order('created_at', { ascending: false });
 
-            if (error) {
-                console.error('Error fetching reviews:', error);
-            } else {
+            if (!error) {
                 setDbReviews(data || []);
             }
         } catch (err) {
-            console.error('Failed to fetch reviews:', err);
+            console.error("Error fetching reviews:", err);
         }
     };
 
+    // Initial Load
     useEffect(() => {
-        fetchReviews();
-    }, [restaurant?.id]);
+        const fetchRestaurant = async () => {
+            setLoading(true);
+            try {
+                const { data, error } = await supabase
+                    .from('restaurants')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
 
+                if (error) throw error;
+                setRestaurant(data);
+
+                // Fetch reviews once restaurant is loaded
+                if (data) {
+                    await fetchReviews(data.id);
+                }
+            } catch (err) {
+                console.error("Error fetching restaurant:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (id) fetchRestaurant();
+    }, [id]);
+
+    const averageRating = dbReviews.length > 0
+        ? (dbReviews.reduce((acc, r) => acc + r.rating, 0) / dbReviews.length).toFixed(1)
+        : 0; // Default to 0 or 'New' logic
+
+    const reviewCount = dbReviews.length;
 
     const handleWriteReviewClick = () => {
         if (!user) {
@@ -54,14 +81,15 @@ export default function RestaurantDetails() {
         setIsReviewFormOpen(true);
     };
 
-    if (!restaurant) return <div className="container" style={{ paddingTop: '4rem' }}>Restaurant not found</div>;
+    if (loading) return <div className="container" style={{ paddingTop: '6rem' }}>Loading restaurant details...</div>;
+    if (!restaurant) return <div className="container" style={{ paddingTop: '6rem' }}>Restaurant not found.</div>;
 
     return (
         <div>
             {/* Banner */}
             <div style={{ height: '400px', position: 'relative' }}>
                 <img
-                    src={restaurant.images[0]}
+                    src={(restaurant.images && restaurant.images[0]) || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200'}
                     alt={restaurant.name}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
@@ -105,7 +133,7 @@ export default function RestaurantDetails() {
                         <div style={{ marginBottom: '3rem' }}>
                             <h3 style={{ fontSize: '1.5rem' }}>Menu Highlights</h3>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                                {restaurant.menu.highlights.map((item, i) => (
+                                {restaurant.menu?.highlights?.map((item, i) => (
                                     <div key={i} style={{ border: '1px solid var(--glass-border)', padding: '1rem', borderRadius: '8px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                             <span style={{ fontWeight: 600 }}>{item.name}</span>
@@ -113,7 +141,7 @@ export default function RestaurantDetails() {
                                         </div>
                                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>{item.description}</p>
                                     </div>
-                                ))}
+                                )) || <p className="text-muted">No menu highlights available.</p>}
                             </div>
                         </div>
 
@@ -166,11 +194,29 @@ export default function RestaurantDetails() {
                         <BookingWidget restaurant={restaurant} />
                         <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px' }}>
                             <h4 style={{ margin: '0 0 1rem 0' }}>Location</h4>
-                            <div style={{ height: '200px', background: '#334155', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                Map View
+                            <div style={{ height: '200px', background: '#334155', borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
+                                {restaurant.latitude && restaurant.longitude ? (
+                                    <MapContainer
+                                        center={[restaurant.latitude, restaurant.longitude]}
+                                        zoom={15}
+                                        scrollWheelZoom={false}
+                                        style={{ height: '100%', width: '100%' }}
+                                    >
+                                        <TileLayer
+                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                        />
+                                        <Marker position={[restaurant.latitude, restaurant.longitude]} />
+                                    </MapContainer>
+                                ) : (
+                                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                                        <MapPin size={32} className="text-muted" style={{ marginBottom: '0.5rem' }} />
+                                        <span className="text-muted">Map view unavailable</span>
+                                    </div>
+                                )}
                             </div>
                             <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                                123 Culinary Ave, {restaurant.location}
+                                {restaurant.location}
                             </p>
                         </div>
                     </div>
@@ -181,7 +227,7 @@ export default function RestaurantDetails() {
                 isOpen={isReviewFormOpen}
                 onClose={() => setIsReviewFormOpen(false)}
                 restaurantId={restaurant.id}
-                onReviewSubmitted={fetchReviews}
+                onReviewSubmitted={() => fetchReviews(restaurant.id)}
             />
         </div>
     );
