@@ -1,11 +1,58 @@
-import { useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { restaurants } from '../data/restaurants';
 import BookingWidget from '../components/BookingWidget';
-import { MapPin, ChefHat, Star } from 'lucide-react';
+import ReviewModal from '../components/ReviewModal';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../supabase';
+import { MapPin, ChefHat, Star, PenLine } from 'lucide-react';
 
 export default function RestaurantDetails() {
     const { id } = useParams();
+    const navigate = useNavigate();
+    const { user } = useAuth();
     const restaurant = restaurants.find(r => r.id === parseInt(id));
+    const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
+    const [dbReviews, setDbReviews] = useState([]);
+
+    const averageRating = dbReviews.length > 0
+        ? (dbReviews.reduce((acc, r) => acc + r.rating, 0) / dbReviews.length).toFixed(1)
+        : 0;
+
+    const reviewCount = dbReviews.length;
+
+    const fetchReviews = async () => {
+        if (!restaurant) return;
+
+        try {
+            const { data, error } = await supabase
+                .from('reviews')
+                .select('*')
+                .eq('restaurant_id', restaurant.id)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error fetching reviews:', error);
+            } else {
+                setDbReviews(data || []);
+            }
+        } catch (err) {
+            console.error('Failed to fetch reviews:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchReviews();
+    }, [restaurant?.id]);
+
+
+    const handleWriteReviewClick = () => {
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        setIsReviewFormOpen(true);
+    };
 
     if (!restaurant) return <div className="container" style={{ paddingTop: '4rem' }}>Restaurant not found</div>;
 
@@ -35,7 +82,7 @@ export default function RestaurantDetails() {
                             <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', color: 'var(--text-muted)' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <Star size={20} color="#fbbf24" fill="#fbbf24" />
-                                    <span style={{ color: 'white', fontWeight: 600 }}>{restaurant.rating}</span> ({restaurant.reviewCount} reviews)
+                                    <span style={{ color: 'white', fontWeight: 600 }}>{averageRating > 0 ? averageRating : 'New'}</span> ({reviewCount} reviews)
                                 </span>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <ChefHat size={20} />
@@ -71,20 +118,33 @@ export default function RestaurantDetails() {
                         </div>
 
                         <div style={{ marginBottom: '2rem' }}>
-                            <h3 style={{ fontSize: '1.5rem' }}>What people are saying</h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h3 style={{ fontSize: '1.5rem', margin: 0 }}>What people are saying</h3>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={handleWriteReviewClick}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem' }}
+                                >
+                                    <PenLine size={18} />
+                                    Write a Review
+                                </button>
+                            </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                {restaurant.reviews.map((review, i) => (
-                                    <div key={i} style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px' }}>
+                                {/* DB Reviews */}
+                                {dbReviews.map((review, i) => (
+                                    <div key={`db-${i}`} style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
                                             <div style={{
-                                                width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary)',
+                                                width: '40px', height: '40px', borderRadius: '50%', background: 'var(--secondary)',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
                                             }}>
-                                                {review.initial}
+                                                {review.user_name?.charAt(0).toUpperCase() || '?'}
                                             </div>
                                             <div>
-                                                <div style={{ fontWeight: 600 }}>{review.user}</div>
-                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{review.date}</div>
+                                                <div style={{ fontWeight: 600 }}>{review.user_name}</div>
+                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                    {review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Recently'}
+                                                </div>
                                             </div>
                                             <div style={{ marginLeft: 'auto', display: 'flex', gap: '2px' }}>
                                                 {[...Array(5)].map((_, idx) => (
@@ -92,10 +152,11 @@ export default function RestaurantDetails() {
                                                 ))}
                                             </div>
                                         </div>
-                                        <p style={{ margin: 0, lineHeight: 1.6 }}>{review.text}</p>
+                                        <p style={{ margin: 0, lineHeight: 1.6 }}>{review.comment}</p>
                                     </div>
                                 ))}
-                                {restaurant.reviews.length === 0 && <p className="text-muted">No reviews yet.</p>}
+
+                                {dbReviews.length === 0 && <p className="text-muted">No reviews yet. Be the first to review!</p>}
                             </div>
                         </div>
                     </div>
@@ -116,6 +177,12 @@ export default function RestaurantDetails() {
 
                 </div>
             </main>
+            <ReviewModal
+                isOpen={isReviewFormOpen}
+                onClose={() => setIsReviewFormOpen(false)}
+                restaurantId={restaurant.id}
+                onReviewSubmitted={fetchReviews}
+            />
         </div>
     );
 }

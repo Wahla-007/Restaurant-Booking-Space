@@ -23,7 +23,7 @@ export default function Login() {
             } else {
                 setError(result.message);
             }
-        } catch (err) {
+        } catch {
             setError('Failed to login. Please try again.');
         } finally {
             setLoading(false);
