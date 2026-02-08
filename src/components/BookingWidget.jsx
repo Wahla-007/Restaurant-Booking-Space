@@ -42,7 +42,8 @@ export default function BookingWidget({ restaurant }) {
                 .select('time')
                 .eq('restaurant_id', restaurant.id)
                 .eq('date', selectedDate)
-                .neq('status', 'cancelled');
+                .neq('status', 'cancelled')
+                .neq('status', 'completed');
 
             if (error) throw error;
 

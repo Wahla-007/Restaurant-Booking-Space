@@ -26,6 +26,8 @@ export default function BusinessDashboard() {
     const [reviews, setReviews] = useState([]);
     const [bookings, setBookings] = useState([]);
     const [showMapPicker, setShowMapPicker] = useState(false);
+    const [bookingFilter, setBookingFilter] = useState('active'); // 'active' | 'completed' | 'cancelled'
+
 
 
     // Form State
@@ -286,99 +288,271 @@ export default function BusinessDashboard() {
                     {/* Main Feed */}
                     <div>
                         <h3 style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Bell size={20} /> Booking Notifications
+                            <Bell size={20} /> Booking Management
                         </h3>
 
-                        {bookings.length === 0 ? (
-                            <div className="glass" style={{ padding: '3rem', textAlign: 'center', borderRadius: 'var(--radius)' }}>
-                                <div style={{ background: 'rgba(255,255,255,0.05)', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
-                                    <Bell size={24} className="text-muted" />
-                                </div>
-                                <h3 style={{ margin: '0 0 0.5rem 0' }}>No bookings yet</h3>
-                                <p style={{ color: 'var(--text-muted)' }}>When customers make a reservation, they will appear here.</p>
-                            </div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                {bookings.map((booking) => {
-                                    const isCancelled = booking.status === 'cancelled';
-                                    return (
-                                        <div key={booking.id} className="glass" style={{
-                                            padding: '1.5rem',
-                                            borderRadius: '12px',
-                                            display: 'flex',
-                                            gap: '1.5rem',
-                                            alignItems: 'center',
-                                            opacity: isCancelled ? 0.6 : 1,
-                                            border: isCancelled ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--glass-border)'
-                                        }}>
-                                            {/* Date Box */}
-                                            <div style={{
-                                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                                background: 'rgba(255,255,255,0.05)', borderRadius: '8px', width: '80px', height: '80px', flexShrink: 0
+                        {/* Filter Tabs */}
+                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
+                            <button
+                                className={`btn ${bookingFilter === 'active' ? 'btn-primary' : 'btn-secondary'}`}
+                                onClick={() => setBookingFilter('active')}
+                                style={{ flex: 1 }}
+                            >
+                                Active ({bookings.filter(b => b.status !== 'cancelled' && b.status !== 'completed').length})
+                            </button>
+                            <button
+                                className={`btn ${bookingFilter === 'completed' ? 'btn-primary' : 'btn-secondary'}`}
+                                onClick={() => setBookingFilter('completed')}
+                                style={{ flex: 1 }}
+                            >
+                                Completed ({bookings.filter(b => b.status === 'completed').length})
+                            </button>
+                            <button
+                                className={`btn ${bookingFilter === 'cancelled' ? 'btn-primary' : 'btn-secondary'}`}
+                                onClick={() => setBookingFilter('cancelled')}
+                                style={{ flex: 1 }}
+                            >
+                                Cancelled ({bookings.filter(b => b.status === 'cancelled').length})
+                            </button>
+                        </div>
+
+                        {(() => {
+                            // Filter bookings based on current filter
+                            let filteredBookings;
+                            if (bookingFilter === 'cancelled') {
+                                filteredBookings = bookings.filter(b => b.status === 'cancelled');
+                            } else if (bookingFilter === 'completed') {
+                                filteredBookings = bookings.filter(b => b.status === 'completed');
+                            } else {
+                                // active
+                                filteredBookings = bookings.filter(b => b.status !== 'cancelled' && b.status !== 'completed');
+                            }
+
+                            // Sort: Upcoming first (by date + time), then past bookings
+                            const sortedBookings = [...filteredBookings].sort((a, b) => {
+                                const dateTimeA = new Date(`${a.date}T${a.time}`);
+                                const dateTimeB = new Date(`${b.date}T${b.time}`);
+                                const now = new Date();
+
+                                // Upcoming bookings come first
+                                const isUpcomingA = dateTimeA >= now;
+                                const isUpcomingB = dateTimeB >= now;
+
+                                if (isUpcomingA && !isUpcomingB) return -1;
+                                if (!isUpcomingA && isUpcomingB) return 1;
+
+                                // Within same category (upcoming/past), sort by datetime
+                                if (isUpcomingA && isUpcomingB) {
+                                    return dateTimeA - dateTimeB; // Earliest upcoming first
+                                } else {
+                                    return dateTimeB - dateTimeA; // Most recent past first
+                                }
+                            });
+
+                            if (sortedBookings.length === 0) {
+                                return (
+                                    <div className="glass" style={{ padding: '3rem', textAlign: 'center', borderRadius: 'var(--radius)' }}>
+                                        <div style={{ background: 'rgba(255,255,255,0.05)', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+                                            <Bell size={24} className="text-muted" />
+                                        </div>
+                                        <h3 style={{ margin: '0 0 0.5rem 0' }}>
+                                            {bookingFilter === 'cancelled' ? 'No cancelled bookings' : bookingFilter === 'completed' ? 'No completed bookings yet' : 'No active bookings yet'}
+                                        </h3>
+                                        <p style={{ color: 'var(--text-muted)' }}>
+                                            {bookingFilter === 'cancelled'
+                                                ? 'Cancelled bookings will appear here.'
+                                                : bookingFilter === 'completed'
+                                                    ? 'Completed bookings will appear here.'
+                                                    : 'When customers make a reservation, they will appear here.'}
+                                        </p>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {sortedBookings.map((booking) => {
+                                        const isCancelled = booking.status === 'cancelled';
+                                        const isCompleted = booking.status === 'completed';
+                                        const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+                                        const isUpcoming = bookingDateTime >= new Date();
+
+                                        return (
+                                            <div key={booking.id} className="glass" style={{
+                                                padding: '1.5rem',
+                                                borderRadius: '12px',
+                                                display: 'flex',
+                                                gap: '1.5rem',
+                                                alignItems: 'center',
+                                                opacity: (isCancelled || isCompleted) ? 0.6 : 1,
+                                                border: isCancelled
+                                                    ? '1px solid rgba(239, 68, 68, 0.3)'
+                                                    : isCompleted
+                                                        ? '1px solid rgba(16, 185, 129, 0.3)'
+                                                        : '1px solid var(--glass-border)',
+                                                position: 'relative'
                                             }}>
-                                                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                                                    {new Date(booking.date).toLocaleDateString(undefined, { month: 'short' })}
-                                                </span>
-                                                <span style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>
-                                                    {new Date(booking.date).getDate()}
-                                                </span>
-                                            </div>
-
-                                            {/* Info */}
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                                    <h4 style={{ margin: 0, fontSize: '1.1rem', textDecoration: isCancelled ? 'line-through' : 'none' }}>
-                                                        {booking.users?.name || booking.user_name || 'Guest User'}
-                                                    </h4>
-                                                    {booking.booking_code && (
-                                                        <span style={{ fontFamily: 'monospace', background: isCancelled ? '#333' : 'var(--primary)', color: isCancelled ? '#888' : 'black', padding: '2px 6px', borderRadius: '4px', code: '0.8rem', fontWeight: 'bold' }}>
-                                                            {booking.booking_code}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                        <Clock size={14} /> {booking.time}
-                                                    </span>
-                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                        <Users size={14} /> {booking.party_size} People
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {/* Actions / Status */}
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                {!isCancelled ? (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                                                        <button
-                                                            onClick={async () => {
-                                                                if (!confirm('Are you sure you want to cancel this booking?')) return;
-                                                                const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', booking.id);
-                                                                if (error) alert(error.message);
-                                                                else fetchBookings(restaurant.id);
-                                                            }}
-                                                            className="btn-secondary"
-                                                            style={{ padding: '0.5rem', color: '#ef4444', border: '1px solid #ef4444' }}
-                                                            title="Cancel Booking"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
+                                                {/* Upcoming Badge */}
+                                                {isUpcoming && !isCancelled && !isCompleted && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: '0.5rem',
+                                                        right: '0.5rem',
+                                                        background: 'var(--primary)',
+                                                        color: 'black',
+                                                        padding: '2px 8px',
+                                                        borderRadius: '4px',
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: 'bold'
+                                                    }}>
+                                                        UPCOMING
                                                     </div>
-                                                ) : (
-                                                    <span style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '0.8rem' }}>CANCELLED</span>
                                                 )}
 
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '60px' }}>
-                                                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: isCancelled ? '#ef4444' : '#10b981', boxShadow: isCancelled ? 'none' : '0 0 10px #10b981' }} />
-                                                    <span style={{ fontSize: '0.7rem', color: isCancelled ? '#ef4444' : '#10b981' }}>{isCancelled ? 'Cancelled' : 'Confirmed'}</span>
+                                                {/* Date Box */}
+                                                <div style={{
+                                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                                    background: 'rgba(255,255,255,0.05)', borderRadius: '8px', width: '80px', height: '80px', flexShrink: 0
+                                                }}>
+                                                    <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                                                        {new Date(booking.date).toLocaleDateString(undefined, { month: 'short' })}
+                                                    </span>
+                                                    <span style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>
+                                                        {new Date(booking.date).getDate()}
+                                                    </span>
+                                                </div>
+
+                                                {/* Info */}
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                        <h4 style={{ margin: 0, fontSize: '1.1rem', textDecoration: isCancelled ? 'line-through' : 'none' }}>
+                                                            {booking.users?.name || booking.user_name || 'Guest User'}
+                                                        </h4>
+                                                        {booking.booking_code && (
+                                                            <span style={{
+                                                                fontFamily: 'monospace',
+                                                                background: isCancelled ? '#333' : isCompleted ? '#10b981' : 'var(--primary)',
+                                                                color: isCancelled ? '#888' : 'black',
+                                                                padding: '2px 6px',
+                                                                borderRadius: '4px',
+                                                                fontSize: '0.8rem',
+                                                                fontWeight: 'bold'
+                                                            }}>
+                                                                {booking.booking_code}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                            <Clock size={14} /> {booking.time}
+                                                        </span>
+                                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                            <Users size={14} /> {booking.party_size} People
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Actions / Status */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                    {!isCancelled && !isCompleted ? (
+                                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                            {/* Complete Button */}
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!confirm('Mark this booking as completed?')) return;
+                                                                    const { error } = await supabase.from('bookings').update({ status: 'completed' }).eq('id', booking.id);
+                                                                    if (error) alert(error.message);
+                                                                    else fetchBookings(restaurant.id);
+                                                                }}
+                                                                className="btn-secondary"
+                                                                style={{ padding: '0.5rem', color: '#10b981', border: '1px solid #10b981' }}
+                                                                title="Mark as Completed"
+                                                            >
+                                                                ✓
+                                                            </button>
+                                                            {/* Cancel Button */}
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!confirm('Are you sure you want to cancel this booking?')) return;
+                                                                    const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', booking.id);
+                                                                    if (error) alert(error.message);
+                                                                    else fetchBookings(restaurant.id);
+                                                                }}
+                                                                className="btn-secondary"
+                                                                style={{ padding: '0.5rem', color: '#ef4444', border: '1px solid #ef4444' }}
+                                                                title="Cancel Booking"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    ) : isCancelled ? (
+                                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                            <span style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '0.8rem' }}>CANCELLED</span>
+                                                            {/* Restore Button */}
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!confirm('Restore this booking?')) return;
+                                                                    const { error } = await supabase.from('bookings').update({ status: 'confirmed' }).eq('id', booking.id);
+                                                                    if (error) alert(error.message);
+                                                                    else {
+                                                                        fetchBookings(restaurant.id);
+                                                                        // Switch back to active view after restore
+                                                                        setBookingFilter('active');
+                                                                    }
+                                                                }}
+                                                                className="btn-secondary"
+                                                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: '#10b981', border: '1px solid #10b981' }}
+                                                                title="Restore Booking"
+                                                            >
+                                                                Restore
+                                                            </button>
+                                                        </div>
+                                                    ) : isCompleted ? (
+                                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                            <span style={{ color: '#10b981', fontWeight: 'bold', fontSize: '0.8rem' }}>COMPLETED</span>
+                                                            {/* Uncomplete Button */}
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!confirm('Move this booking back to active?')) return;
+                                                                    const { error } = await supabase.from('bookings').update({ status: 'confirmed' }).eq('id', booking.id);
+                                                                    if (error) alert(error.message);
+                                                                    else {
+                                                                        fetchBookings(restaurant.id);
+                                                                        // Switch back to active view after uncomplete
+                                                                        setBookingFilter('active');
+                                                                    }
+                                                                }}
+                                                                className="btn-secondary"
+                                                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: '#fbbf24', border: '1px solid #fbbf24' }}
+                                                                title="Move to Active"
+                                                            >
+                                                                Uncomplete
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <span style={{ color: '#10b981', fontWeight: 'bold', fontSize: '0.8rem' }}>CONFIRMED</span>
+                                                    )}
+
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '60px' }}>
+                                                        <div style={{
+                                                            width: '12px',
+                                                            height: '12px',
+                                                            borderRadius: '50%',
+                                                            background: isCancelled ? '#ef4444' : isCompleted ? '#10b981' : '#10b981',
+                                                            boxShadow: (isCancelled || isCompleted) ? 'none' : '0 0 10px #10b981'
+                                                        }} />
+                                                        <span style={{ fontSize: '0.7rem', color: isCancelled ? '#ef4444' : isCompleted ? '#10b981' : '#10b981' }}>
+                                                            {isCancelled ? 'Cancelled' : isCompleted ? 'Done' : 'Confirmed'}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {/* Quick Stats / Sidebar */}
@@ -389,6 +563,18 @@ export default function BusinessDashboard() {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ color: 'var(--text-muted)' }}>Total Bookings</span>
                                     <span style={{ fontWeight: 'bold' }}>{bookings.length}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Active</span>
+                                    <span style={{ fontWeight: 'bold', color: '#10b981' }}>
+                                        {bookings.filter(b => b.status !== 'cancelled' && b.status !== 'completed').length}
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Completed</span>
+                                    <span style={{ fontWeight: 'bold', color: '#10b981' }}>
+                                        {bookings.filter(b => b.status === 'completed').length}
+                                    </span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ color: 'var(--text-muted)' }}>Average Rating</span>
@@ -412,7 +598,7 @@ export default function BusinessDashboard() {
     }
 
     // --- PREVIEW MODE RENDER ---
-    if (previewMode) {
+    if (viewMode === 'editor' && previewMode) {
         return (
             <div>
                 <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
