@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabase';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Camera, Clock, Calendar, MapPin, Tag, Type, DollarSign, List, Trash2, Plus, Eye, Save, ChefHat, Star, PenLine, Upload, LayoutGrid, LayoutTemplate } from 'lucide-react';
+import { Camera, Clock, Calendar, MapPin, Tag, Type, DollarSign, List, Trash2, Plus, Eye, Save, ChefHat, Star, PenLine, Upload, LayoutGrid, LayoutTemplate, Bell, ArrowLeft, Users } from 'lucide-react';
 import RestaurantCard from '../components/RestaurantCard';
 import BookingWidget from '../components/BookingWidget';
 import LocationPicker from '../components/LocationPicker';
@@ -18,8 +17,14 @@ export default function BusinessDashboard() {
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState({});
     const [message, setMessage] = useState('');
+
+    // View States
+    const [viewMode, setViewMode] = useState('notifications'); // 'notifications' | 'editor'
     const [previewMode, setPreviewMode] = useState(false); // false, 'full', 'card'
+
+    // Data States
     const [reviews, setReviews] = useState([]);
+    const [bookings, setBookings] = useState([]);
     const [showMapPicker, setShowMapPicker] = useState(false);
 
 
@@ -41,8 +46,6 @@ export default function BusinessDashboard() {
     });
 
     // Derived state for preview (Safe access to simple variables)
-    // If restaurant is null (new), we might have to show empty or formData. 
-    // But user specifically asked to NOT show unsaved changes.
     const previewData = restaurant || {
         name: 'Restaurant Name (Not Saved)',
         cuisine: 'Cuisine',
@@ -82,6 +85,9 @@ export default function BusinessDashboard() {
 
                 setReviews(reviewsData || []);
 
+                // Fetch Bookings
+                fetchBookings(data.id);
+
                 setFormData({
                     name: data.name || '',
                     cuisine: data.cuisine || '',
@@ -105,13 +111,30 @@ export default function BusinessDashboard() {
         }
     };
 
+    const fetchBookings = async (restaurantId) => {
+        try {
+            const { data, error } = await supabase
+                .from('bookings')
+                .select(`
+                    *,
+                    users ( name, email, avatar )
+                `)
+                .eq('restaurant_id', restaurantId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setBookings(data || []);
+        } catch (err) {
+            console.error("Error fetching bookings:", err);
+        }
+    };
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleImageChange = async (index, event) => {
-        // ... (unchanged) ...
         const file = event.target.files[0];
         if (!file) return;
 
@@ -154,7 +177,6 @@ export default function BusinessDashboard() {
     };
 
     const toggleDay = (day) => {
-        // ... (unchanged) ...
         setFormData(prev => {
             const days = prev.active_days.includes(day)
                 ? prev.active_days.filter(d => d !== day)
@@ -233,6 +255,161 @@ export default function BusinessDashboard() {
     };
 
     if (loading) return <div className="container" style={{ paddingTop: '5rem' }}>Loading...</div>;
+
+    // --- DASHBOARD / NOTIFICATIONS MODE ---
+    if (viewMode === 'notifications') {
+        return (
+            <div className="container" style={{ paddingTop: '2rem' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontSize: '2rem' }}>Dashboard</h1>
+                        <p style={{ color: 'var(--text-muted)', margin: '0.5rem 0 0 0' }}>
+                            Welcome back, {restaurant ? restaurant.name : 'Partner'}
+                        </p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <button
+                            onClick={() => setViewMode('editor')}
+                            className="btn btn-secondary"
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                            <PenLine size={18} /> Edit Restaurant
+                        </button>
+                        <button onClick={handleLogout} className="btn-secondary">Logout</button>
+                    </div>
+                </div>
+
+                {/* Notifications / Bookings List */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem' }}>
+
+                    {/* Main Feed */}
+                    <div>
+                        <h3 style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Bell size={20} /> Booking Notifications
+                        </h3>
+
+                        {bookings.length === 0 ? (
+                            <div className="glass" style={{ padding: '3rem', textAlign: 'center', borderRadius: 'var(--radius)' }}>
+                                <div style={{ background: 'rgba(255,255,255,0.05)', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+                                    <Bell size={24} className="text-muted" />
+                                </div>
+                                <h3 style={{ margin: '0 0 0.5rem 0' }}>No bookings yet</h3>
+                                <p style={{ color: 'var(--text-muted)' }}>When customers make a reservation, they will appear here.</p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {bookings.map((booking) => {
+                                    const isCancelled = booking.status === 'cancelled';
+                                    return (
+                                        <div key={booking.id} className="glass" style={{
+                                            padding: '1.5rem',
+                                            borderRadius: '12px',
+                                            display: 'flex',
+                                            gap: '1.5rem',
+                                            alignItems: 'center',
+                                            opacity: isCancelled ? 0.6 : 1,
+                                            border: isCancelled ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--glass-border)'
+                                        }}>
+                                            {/* Date Box */}
+                                            <div style={{
+                                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                                background: 'rgba(255,255,255,0.05)', borderRadius: '8px', width: '80px', height: '80px', flexShrink: 0
+                                            }}>
+                                                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                                                    {new Date(booking.date).toLocaleDateString(undefined, { month: 'short' })}
+                                                </span>
+                                                <span style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>
+                                                    {new Date(booking.date).getDate()}
+                                                </span>
+                                            </div>
+
+                                            {/* Info */}
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                    <h4 style={{ margin: 0, fontSize: '1.1rem', textDecoration: isCancelled ? 'line-through' : 'none' }}>
+                                                        {booking.users?.name || booking.user_name || 'Guest User'}
+                                                    </h4>
+                                                    {booking.booking_code && (
+                                                        <span style={{ fontFamily: 'monospace', background: isCancelled ? '#333' : 'var(--primary)', color: isCancelled ? '#888' : 'black', padding: '2px 6px', borderRadius: '4px', code: '0.8rem', fontWeight: 'bold' }}>
+                                                            {booking.booking_code}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                        <Clock size={14} /> {booking.time}
+                                                    </span>
+                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                        <Users size={14} /> {booking.party_size} People
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Actions / Status */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                {!isCancelled ? (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!confirm('Are you sure you want to cancel this booking?')) return;
+                                                                const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', booking.id);
+                                                                if (error) alert(error.message);
+                                                                else fetchBookings(restaurant.id);
+                                                            }}
+                                                            className="btn-secondary"
+                                                            style={{ padding: '0.5rem', color: '#ef4444', border: '1px solid #ef4444' }}
+                                                            title="Cancel Booking"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <span style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '0.8rem' }}>CANCELLED</span>
+                                                )}
+
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '60px' }}>
+                                                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: isCancelled ? '#ef4444' : '#10b981', boxShadow: isCancelled ? 'none' : '0 0 10px #10b981' }} />
+                                                    <span style={{ fontSize: '0.7rem', color: isCancelled ? '#ef4444' : '#10b981' }}>{isCancelled ? 'Cancelled' : 'Confirmed'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Quick Stats / Sidebar */}
+                    <div>
+                        <div className="glass" style={{ padding: '1.5rem', borderRadius: 'var(--radius)' }}>
+                            <h4 style={{ margin: '0 0 1rem 0' }}>Quick Stats</h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Total Bookings</span>
+                                    <span style={{ fontWeight: 'bold' }}>{bookings.length}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Average Rating</span>
+                                    <span style={{ fontWeight: 'bold' }}>
+                                        {reviews.length > 0
+                                            ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+                                            : 'N/A'}
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Total Reviews</span>
+                                    <span style={{ fontWeight: 'bold' }}>{reviews.length}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        );
+    }
 
     // --- PREVIEW MODE RENDER ---
     if (previewMode) {
@@ -491,7 +668,14 @@ export default function BusinessDashboard() {
             </div>
 
             {/* Logout/Top Nav */}
-            <div className="container" style={{ paddingTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
+            <div className="container" style={{ paddingTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button
+                    onClick={() => setViewMode('notifications')}
+                    className="btn-secondary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                    <ArrowLeft size={16} /> Back to Dashboard
+                </button>
                 <button onClick={handleLogout} className="btn-secondary" style={{ fontSize: '0.9rem' }}>Logout</button>
             </div>
 
@@ -801,12 +985,13 @@ export default function BusinessDashboard() {
                                         key={day}
                                         onClick={() => toggleDay(day)}
                                         style={{
-                                            padding: '0.4rem 0.8rem',
-                                            borderRadius: '20px',
-                                            border: '1px solid var(--primary)',
-                                            background: formData.active_days.includes(day) ? 'var(--primary)' : 'transparent',
-                                            color: formData.active_days.includes(day) ? 'black' : 'white',
+                                            padding: '0.5rem 0.8rem',
+                                            borderRadius: '6px',
+                                            border: 'none',
                                             cursor: 'pointer',
+                                            background: formData.active_days.includes(day) ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                                            color: formData.active_days.includes(day) ? 'black' : 'var(--text-muted)',
+                                            fontWeight: formData.active_days.includes(day) ? 'bold' : 'normal',
                                             fontSize: '0.8rem'
                                         }}
                                     >
@@ -824,33 +1009,16 @@ export default function BusinessDashboard() {
                                 name="tags"
                                 value={formData.tags}
                                 onChange={handleInputChange}
-                                placeholder="Romantic, Patio..."
+                                placeholder="e.g. Romantic, Outdoor SE..."
                                 className="input"
-                                style={{ padding: '0.5rem', width: '100%' }}
+                                style={{ width: '100%' }}
                             />
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Comma separated values</p>
                         </div>
+
                     </div>
                 </div>
             </main>
-
-            <style>{`
-                .input-transparent {
-                    background: transparent;
-                    border: 1px dashed transparent;
-                    color: inherit;
-                    font-family: inherit;
-                    transition: all 0.2s;
-                    border-radius: 4px;
-                }
-                .input-transparent:hover {
-                    border-color: rgba(255,255,255,0.2);
-                }
-                .input-transparent:focus {
-                    outline: none;
-                    background: rgba(255,255,255,0.05);
-                    border-color: var(--primary);
-                }
-            `}</style>
         </div>
     );
 }

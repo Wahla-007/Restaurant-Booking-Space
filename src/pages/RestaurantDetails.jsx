@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-// import { restaurants } from '../data/restaurants'; // No longer needed
+import { restaurants as staticRestaurants } from '../data/restaurants';
 import BookingWidget from '../components/BookingWidget';
 import ReviewModal from '../components/ReviewModal';
 import { useAuth } from '../context/AuthContext';
@@ -23,7 +23,7 @@ export default function RestaurantDetails() {
 
     // Fetch Reviews Function (for initial load and refresh)
     const fetchReviews = async (restaurantId) => {
-        if (!restaurantId) return;
+        if (!restaurantId || typeof restaurantId === 'number') return; // Skip for static/numeric IDs
         try {
             const { data, error } = await supabase
                 .from('reviews')
@@ -44,18 +44,55 @@ export default function RestaurantDetails() {
         const fetchRestaurant = async () => {
             setLoading(true);
             try {
-                const { data, error } = await supabase
-                    .from('restaurants')
-                    .select('*')
-                    .eq('id', id)
-                    .single();
+                // Check if ID is likely a UUID (length check is usually sufficient here)
+                // UUIDs are 36 chars. Static IDs are 1, 2, 3...
+                const isUUID = id && id.length > 20;
 
-                if (error) throw error;
-                setRestaurant(data);
+                if (!isUUID) {
+                    // It's likely a static ID
+                    const found = staticRestaurants.find(r => r.id == id);
+                    if (found) {
+                        // Normalize static data to match DB Schema
+                        const normalized = {
+                            ...found,
+                            latitude: found.coordinates?.lat || null,
+                            longitude: found.coordinates?.lng || null,
+                            images: found.images || [],
+                            menu: found.menu || { highlights: [] }
+                        };
+                        setRestaurant(normalized);
 
-                // Fetch reviews once restaurant is loaded
-                if (data) {
-                    await fetchReviews(data.id);
+                        // Adapt static reviews if they exist
+                        if (found.reviews && Array.isArray(found.reviews)) {
+                            const adaptedReviews = found.reviews.map(r => ({
+                                user_name: r.user,
+                                rating: r.rating,
+                                comment: r.text,
+                                created_at: new Date().toISOString()
+                            }));
+                            setDbReviews(adaptedReviews);
+                        } else {
+                            setDbReviews([]);
+                        }
+                    } else {
+                        console.error("Restaurant not found in static data");
+                        setRestaurant(null);
+                    }
+                } else {
+                    // It's a UUID, fetch from DB
+                    const { data, error } = await supabase
+                        .from('restaurants')
+                        .select('*')
+                        .eq('id', id)
+                        .single();
+
+                    if (error) throw error;
+                    setRestaurant(data);
+
+                    // Fetch reviews once restaurant is loaded
+                    if (data) {
+                        await fetchReviews(data.id);
+                    }
                 }
             } catch (err) {
                 console.error("Error fetching restaurant:", err);

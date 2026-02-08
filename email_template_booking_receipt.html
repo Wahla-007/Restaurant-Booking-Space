@@ -1,0 +1,103 @@
+<div
+  style="
+    font-family: system-ui, sans-serif, Arial;
+    font-size: 14px;
+    color: #333;
+    padding: 14px 8px;
+    background-color: #f5f5f5;
+  "
+>
+  <div style="max-width: 600px; margin: auto; background-color: #fff">
+    <div style="border-top: 6px solid #458500; padding: 16px; display: flex; align-items: center;">
+      <a
+        style="text-decoration: none; outline: none; margin-right: 8px; vertical-align: middle"
+        href="#"
+        target="_blank"
+      >
+       <!-- You can replace this src with your actual logo URL -->
+        <img
+          style="height: 32px; vertical-align: middle"
+          height="32px"
+          src="https://cdn-icons-png.flaticon.com/512/3448/3448609.png" 
+          alt="logo"
+        />
+      </a>
+      <span
+        style="
+          font-size: 16px;
+          vertical-align: middle;
+          border-left: 1px solid #333;
+          padding-left: 8px;
+        "
+      >
+        <strong>Reservation Confirmed</strong>
+      </span>
+    </div>
+    <div style="padding: 0 16px">
+      <p style="font-size: 16px; margin-bottom: 24px;">Hi <strong>{{to_name}}</strong>, your table at <strong>{{restaurant_name}}</strong> is reserved!</p>
+      <div
+        style="
+          text-align: left;
+          font-size: 14px;
+          padding-bottom: 4px;
+          border-bottom: 2px solid #333;
+          display: flex;
+          justify-content: space-between;
+        "
+      >
+        <strong>Booking Detail</strong>
+        <strong># {{booking_code}}</strong>
+      </div>
+      
+      <!-- Reservation Details Table -->
+      <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+        <tr style="vertical-align: top; border-bottom: 1px solid #f0f0f0;">
+          <td style="padding: 16px 8px 16px 0; width: 60px;">
+             <!-- Calendar Icon -->
+             <img src="https://cdn-icons-png.flaticon.com/512/2693/2693507.png" width="32" style="opacity: 0.7"/>
+          </td>
+          <td style="padding: 16px 8px; width: 100%">
+            <div style="font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Date & Time</div>
+            <div style="margin-top: 4px; font-size: 16px;"><strong>{{date}}</strong> at <strong>{{time}}</strong></div>
+          </td>
+        </tr>
+         <tr style="vertical-align: top; border-bottom: 1px solid #f0f0f0;">
+          <td style="padding: 16px 8px 16px 0; width: 60px;">
+             <!-- User Icon -->
+             <img src="https://cdn-icons-png.flaticon.com/512/1077/1077114.png" width="32" style="opacity: 0.7"/>
+          </td>
+          <td style="padding: 16px 8px; width: 100%">
+            <div style="font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Party Size</div>
+            <div style="margin-top: 4px; font-size: 16px;"><strong>{{party_size}} People</strong></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top;">
+          <td style="padding: 16px 8px 16px 0; width: 60px;">
+             <!-- Map Icon -->
+             <img src="https://cdn-icons-png.flaticon.com/512/535/535239.png" width="32" style="opacity: 0.7"/>
+          </td>
+          <td style="padding: 16px 8px; width: 100%">
+            <div style="font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Location</div>
+            <div style="margin-top: 4px; font-size: 16px;">{{restaurant_location}}</div>
+          </td>
+        </tr>
+      </table>
+
+      <div style="padding: 24px 0">
+        <div style="border-top: 2px solid #333"></div>
+      </div>
+      
+      <div style="text-align: center; color: #666; margin-bottom: 24px;">
+        <p>Please arrive 5 minutes early to secure your table.<br>
+        We look forward to serving you!</p>
+      </div>
+
+    </div>
+  </div>
+  <div style="max-width: 600px; margin: auto; text-align: center; margin-top: 16px;">
+    <p style="color: #999; font-size: 12px;">
+      This receipt was sent to {{to_email}}<br />
+      Booking Reference: {{booking_code}}
+    </p>
+  </div>
+</div>

@@ -1,6 +1,6 @@
 import HeroSearch from '../components/HeroSearch';
 import RestaurantCard from '../components/RestaurantCard';
-import { restaurants } from '../data/restaurants';
+import { restaurants as staticRestaurants } from '../data/restaurants';
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +11,7 @@ export default function HomePage() {
     const navigate = useNavigate();
     const [allRestaurants, setAllRestaurants] = useState([]);
     const [filteredRestaurants, setFilteredRestaurants] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (user && user.role === 'business') {
@@ -19,82 +20,95 @@ export default function HomePage() {
     }, [user, navigate]);
 
     useEffect(() => {
-        const fetchData = async () => {
+        const loadData = async () => {
             try {
-                // 1. Fetch DB Restaurants
+                // 1. Fetch Key Data
                 const { data: dbRestaurants, error: restError } = await supabase
                     .from('restaurants')
                     .select('*');
 
-                if (restError) console.error("Error fetching restaurants:", restError);
-
-                // 2. Fetch All Reviews
                 const { data: reviews, error: revError } = await supabase
                     .from('reviews')
                     .select('restaurant_id, rating');
 
+                if (restError) console.error("Error fetching restaurants:", restError);
                 if (revError) console.error("Error fetching reviews:", revError);
 
-                // 3. Process Reviews Stats
-                const restaurantStats = {};
-                (reviews || []).forEach(review => {
-                    const id = review.restaurant_id;
-                    if (!restaurantStats[id]) {
-                        restaurantStats[id] = { sum: 0, count: 0 };
+                // 2. Process Reviews Stats
+                const stats = {};
+                if (reviews) {
+                    reviews.forEach(r => {
+                        if (!stats[r.restaurant_id]) {
+                            stats[r.restaurant_id] = { sum: 0, count: 0 };
+                        }
+                        stats[r.restaurant_id].sum += r.rating;
+                        stats[r.restaurant_id].count += 1;
+                    });
+                }
+
+                // 3. Format DB Restaurants
+                const formattedDbRestaurants = (dbRestaurants || []).map(r => {
+                    const s = stats[r.id];
+
+                    // Safe image handling
+                    let images = [];
+                    if (r.images && Array.isArray(r.images) && r.images.length > 0) {
+                        images = r.images;
+                    } else {
+                        images = ["https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80"];
                     }
-                    restaurantStats[id].sum += review.rating;
-                    restaurantStats[id].count += 1;
-                });
 
-                // 4. Combine Static + DB Restaurants
-                // Normalize DB data to match component structure
-                const normalizedDbRestaurants = (dbRestaurants || []).map(r => ({
-                    id: r.id, // Keep UUID
-                    name: r.name,
-                    cuisine: r.cuisine,
-                    rating: 'New', // Will be overwritten by stats
-                    reviewCount: 0,
-                    price: r.price,
-                    location: r.location,
-                    description: r.description,
-                    images: r.images && r.images.length > 0 ? r.images : ["https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80"], // Fallback
-                    tags: r.tags || []
-                }));
-
-                const combinedList = [...restaurants, ...normalizedDbRestaurants];
-
-                // 5. Apply Stats to All
-                const finalRestaurants = combinedList.map(r => {
-                    const stats = restaurantStats[r.id];
                     return {
-                        ...r,
-                        rating: stats ? (stats.sum / stats.count).toFixed(1) : (r.rating || 'New'),
-                        reviewCount: stats ? stats.count : (r.reviewCount || 0)
+                        id: r.id,
+                        name: r.name || 'Untitled Restaurant',
+                        cuisine: r.cuisine || 'Restaurant',
+                        price: r.price || '$$',
+                        location: r.location || '',
+                        description: r.description || '',
+                        images: images,
+                        tags: r.tags || [],
+                        rating: s ? (s.sum / s.count).toFixed(1) : 'New',
+                        reviewCount: s ? s.count : 0
                     };
                 });
 
-                setAllRestaurants(finalRestaurants);
-                setFilteredRestaurants(finalRestaurants);
+                // 4. Combine (Static + DB) - Ensure staticRestaurants is an array
+                const safeStatic = Array.isArray(staticRestaurants) ? staticRestaurants : [];
+                const final = [...safeStatic, ...formattedDbRestaurants];
+
+                setAllRestaurants(final);
+                setFilteredRestaurants(final);
 
             } catch (err) {
-                console.error("Failed to load data:", err);
-                setAllRestaurants(restaurants);
-                setFilteredRestaurants(restaurants);
+                console.error("Critical error loading homepage:", err);
+                // Fallback
+                setAllRestaurants(staticRestaurants || []);
+                setFilteredRestaurants(staticRestaurants || []);
+            } finally {
+                setLoading(false);
             }
         };
 
-        fetchData();
+        loadData();
     }, []);
 
     const handleSearch = ({ query }) => {
-        const q = query.toLowerCase();
+        const q = (query || '').toLowerCase();
         const results = allRestaurants.filter(r =>
-            r.name.toLowerCase().includes(q) ||
-            r.cuisine.toLowerCase().includes(q) ||
-            r.location.toLowerCase().includes(q)
+            (r.name && r.name.toLowerCase().includes(q)) ||
+            (r.cuisine && r.cuisine.toLowerCase().includes(q)) ||
+            (r.location && r.location.toLowerCase().includes(q))
         );
         setFilteredRestaurants(results);
     };
+
+    if (loading) {
+        return (
+            <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>
+                <p>Loading restaurants...</p>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -106,15 +120,21 @@ export default function HomePage() {
                     <button className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>View all</button>
                 </div>
 
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                    gap: '2rem'
-                }}>
-                    {filteredRestaurants.map(restaurant => (
-                        <RestaurantCard key={restaurant.id} restaurant={restaurant} />
-                    ))}
-                </div>
+                {filteredRestaurants.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                        No restaurants found.
+                    </div>
+                ) : (
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                        gap: '2rem'
+                    }}>
+                        {filteredRestaurants.map(restaurant => (
+                            <RestaurantCard key={restaurant.id} restaurant={restaurant} />
+                        ))}
+                    </div>
+                )}
             </main>
         </div>
     );
