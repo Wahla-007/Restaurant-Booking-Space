@@ -1,11 +1,20 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { LogOut, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+const navLinks = [
+ { label: "Discover", sectionId: "discover" },
+ { label: "Cuisines", sectionId: "cuisines" },
+ { label: "Reviews", sectionId: "reviews" },
+ { label: "About", sectionId: "about" },
+ { label: "For Business", path: "/business" },
+];
+
 export default function Navbar() {
  const navigate = useNavigate();
+ const location = useLocation();
  const { user, logout } = useAuth();
  const [scrolled, setScrolled] = useState(false);
  const [mobileOpen, setMobileOpen] = useState(false);
@@ -15,6 +24,25 @@ export default function Navbar() {
   window.addEventListener("scroll", handleScroll);
   return () => window.removeEventListener("scroll", handleScroll);
  }, []);
+
+ const handleNavClick = (link) => {
+  if (link.path) {
+   navigate(link.path);
+   return;
+  }
+  // If on homepage, scroll to section
+  if (location.pathname === "/") {
+   const el = document.getElementById(link.sectionId);
+   el?.scrollIntoView({ behavior: "smooth" });
+  } else {
+   // Navigate to homepage then scroll
+   navigate("/");
+   setTimeout(() => {
+    const el = document.getElementById(link.sectionId);
+    el?.scrollIntoView({ behavior: "smooth" });
+   }, 300);
+  }
+ };
 
  return (
   <motion.nav
@@ -44,15 +72,16 @@ export default function Navbar() {
 
      {/* Desktop Center Nav Links */}
      <div className="hidden md:flex items-center gap-1">
-      {["Discover", "Cuisines", "Reviews", "About"].map((item) => (
+      {navLinks.map((link) => (
        <button
-        key={item}
-        className="px-4 py-2 text-[15px] font-semibold text-[#002b11]/70 hover:text-[#002b11] rounded-full hover:bg-[#002b11]/[0.04] transition-all duration-200"
-        onClick={() => {
-         const el = document.getElementById(item.toLowerCase());
-         el?.scrollIntoView({ behavior: "smooth" });
-        }}>
-        {item}
+        key={link.label}
+        className={`px-4 cursor-pointer py-2 text-[15px] font-semibold rounded-full transition-all duration-200 ${
+         link.path && location.pathname === link.path
+          ? "text-[#002b11] bg-[#002b11]/[0.06]"
+          : "text-[#002b11]/70 hover:text-[#002b11] hover:bg-[#002b11]/[0.04]"
+        }`}
+        onClick={() => handleNavClick(link)}>
+        {link.label}
        </button>
       ))}
      </div>
@@ -116,16 +145,19 @@ export default function Navbar() {
       transition={{ duration: 0.25 }}
       className="md:hidden bg-white border-t border-gray-100">
       <div className="px-6 py-5 space-y-1">
-       {["Discover", "Cuisines", "Reviews", "About"].map((item) => (
+       {navLinks.map((link) => (
         <button
-         key={item}
-         className="block w-full text-left px-4 py-3 text-[15px] font-semibold text-[#002b11]/70 hover:text-[#002b11] hover:bg-[#002b11]/[0.03] rounded-xl transition-all"
+         key={link.label}
+         className={`block w-full text-left px-4 py-3 text-[15px] font-semibold rounded-xl transition-all ${
+          link.path && location.pathname === link.path
+           ? "text-[#002b11] bg-[#002b11]/[0.06]"
+           : "text-[#002b11]/70 hover:text-[#002b11] hover:bg-[#002b11]/[0.03]"
+         }`}
          onClick={() => {
           setMobileOpen(false);
-          const el = document.getElementById(item.toLowerCase());
-          el?.scrollIntoView({ behavior: "smooth" });
+          handleNavClick(link);
          }}>
-         {item}
+         {link.label}
         </button>
        ))}
        <div className="pt-3 border-t border-gray-100 flex gap-3 mt-2">

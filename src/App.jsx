@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import BusinessDashboard from "./pages/BusinessDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import BusinessPage from "./pages/BusinessPage";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import PageLoader from "./components/ui/PageLoader";
@@ -17,7 +18,8 @@ function App() {
  const [loading, setLoading] = useState(false);
  const isDashboard =
   location.pathname === "/business-dashboard" ||
-  location.pathname === "/super-admin";
+  location.pathname === "/super-admin" ||
+  location.pathname === "/business";
 
  useEffect(() => {
   setLoading(true);
@@ -39,6 +41,7 @@ function App() {
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/business-dashboard" element={<BusinessDashboard />} />
       <Route path="/super-admin" element={<SuperAdminDashboard />} />
+      <Route path="/business" element={<BusinessPage />} />
      </Routes>
     </div>
    </ToastProvider>

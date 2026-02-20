@@ -95,7 +95,7 @@ export default function RestaurantCard({ restaurant, index = 0 }) {
      )}
 
      {/* Name */}
-     <h3 className="text-[15px] font-bold text-[#002b11] leading-snug mb-1.5 group-hover:text-[#004d1f] transition-colors">
+     <h3 className="text-[15px] font-bold text-[#002b11] leading-snug mb-1.5 group-hover:text-[#004d1f] transition-colors capitalize">
       {restaurant.name}
      </h3>
 

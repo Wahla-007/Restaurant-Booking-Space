@@ -4,6 +4,7 @@ import BookingWidget from "../components/BookingWidget";
 import ReviewModal from "../components/ReviewModal";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase";
+import { motion, AnimatePresence } from "framer-motion";
 import {
  MapPin,
  ChefHat,
@@ -13,6 +14,13 @@ import {
  CalendarCheck,
  X as XIcon,
  UserCircle,
+ Clock,
+ Heart,
+ Share2,
+ Camera,
+ ChevronLeft,
+ ChevronRight,
+ Check,
 } from "lucide-react";
 import { trackView } from "../utils/analytics";
 
@@ -27,8 +35,18 @@ export default function RestaurantDetails() {
  const [dbReviews, setDbReviews] = useState([]);
  const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
  const [lightboxImage, setLightboxImage] = useState(null);
+ const [lightboxIndex, setLightboxIndex] = useState(0);
  const [showEligibilityPopup, setShowEligibilityPopup] = useState(false);
  const [verifiedUserIds, setVerifiedUserIds] = useState([]);
+ const [activeTab, setActiveTab] = useState("overview");
+ const [saved, setSaved] = useState(false);
+
+ const tabs = [
+  { id: "overview", label: "Overview" },
+  { id: "menu", label: "Menu" },
+  { id: "location", label: "Location" },
+  { id: "reviews", label: "Reviews" },
+ ];
 
  // Fetch verified reviewers (users with completed bookings)
  const fetchVerifiedUsers = async (restaurantId) => {
@@ -41,7 +59,6 @@ export default function RestaurantDetails() {
     .eq("status", "completed");
 
    if (data) {
-    // Store both raw and string versions for flexible matching
     const ids = [...new Set(data.map((b) => b.user_id))];
     setVerifiedUserIds(ids);
    }
@@ -50,9 +67,9 @@ export default function RestaurantDetails() {
   }
  };
 
- // Fetch Reviews Function (for initial load and refresh)
+ // Fetch Reviews
  const fetchReviews = async (restaurantId) => {
-  if (!restaurantId || typeof restaurantId === "number") return; // Skip for static/numeric IDs
+  if (!restaurantId || typeof restaurantId === "number") return;
   try {
    const { data, error } = await supabase
     .from("reviews")
@@ -73,7 +90,6 @@ export default function RestaurantDetails() {
   const fetchRestaurant = async () => {
    setLoading(true);
    try {
-    // Fetch from DB
     const { data, error } = await supabase
      .from("restaurants")
      .select("*")
@@ -83,10 +99,8 @@ export default function RestaurantDetails() {
     if (error) throw error;
     setRestaurant(data);
 
-    // Track page view
     if (data?.id) trackView(data.id);
 
-    // Fetch reviews once restaurant is loaded
     if (data) {
      await fetchReviews(data.id);
      await fetchVerifiedUsers(data.id);
@@ -106,9 +120,26 @@ export default function RestaurantDetails() {
    ? (
       dbReviews.reduce((acc, r) => acc + r.rating, 0) / dbReviews.length
      ).toFixed(1)
-   : 0; // Default to 0 or 'New' logic
+   : 0;
 
  const reviewCount = dbReviews.length;
+
+ // Rating distribution
+ const ratingDistribution = [5, 4, 3, 2, 1].map((stars) => ({
+  stars,
+  count: dbReviews.filter((r) => r.rating === stars).length,
+ }));
+
+ const getRatingLabel = (rating) => {
+  if (rating >= 4.5) return "Excellent";
+  if (rating >= 4.0) return "Very Good";
+  if (rating >= 3.5) return "Good";
+  if (rating >= 3.0) return "Average";
+  if (rating >= 2.0) return "Poor";
+  return "Terrible";
+ };
+
+ const ratingLabels = ["Excellent", "Good", "Average", "Poor", "Terrible"];
 
  const handleWriteReviewClick = async () => {
   if (!user) {
@@ -116,15 +147,12 @@ export default function RestaurantDetails() {
    return;
   }
 
-  // Check if restaurant is from DB (UUID)
   const isUUID = restaurant.id && String(restaurant.id).length > 20;
   if (!isUUID) {
-   // Static restaurant — allow review for demo
    setIsReviewFormOpen(true);
    return;
   }
 
-  // Check if user has a completed booking at this restaurant
   try {
    let query = supabase
     .from("bookings")
@@ -133,7 +161,6 @@ export default function RestaurantDetails() {
     .eq("status", "completed")
     .limit(1);
 
-   // user.id may be UUID or bigint depending on DB — safely filter
    const parsedUserId = Number(user.id);
    if (Number.isInteger(parsedUserId) && parsedUserId > 0) {
     query = query.eq("user_id", parsedUserId);
@@ -156,554 +183,600 @@ export default function RestaurantDetails() {
   }
  };
 
+ const scrollToSection = (tabId) => {
+  setActiveTab(tabId);
+  const el = document.getElementById(`section-${tabId}`);
+  if (el) {
+   el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+ };
+
+ const images =
+  restaurant?.images?.length > 0
+   ? restaurant.images
+   : ["https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200"];
+
  if (loading)
   return (
-   <div className="container" style={{ paddingTop: "6rem" }}>
-    Loading restaurant details...
+   <div className="min-h-screen bg-white flex items-center justify-center">
+    <div className="flex flex-col items-center gap-3">
+     <div className="w-8 h-8 border-3 border-[#00aa6c] border-t-transparent rounded-full animate-spin" />
+     <span className="text-sm text-gray-400">Loading restaurant...</span>
+    </div>
    </div>
   );
+
  if (!restaurant)
   return (
-   <div className="container" style={{ paddingTop: "6rem" }}>
-    Restaurant not found.
+   <div className="min-h-screen bg-white flex items-center justify-center">
+    <div className="text-center">
+     <h2 className="text-2xl font-bold text-[#002b11] mb-2">
+      Restaurant not found
+     </h2>
+     <button
+      onClick={() => navigate("/")}
+      className="text-[#00aa6c] font-semibold hover:underline cursor-pointer">
+      Back to home
+     </button>
+    </div>
    </div>
   );
 
  return (
-  <div>
-   {/* Banner */}
-   <div style={{ height: "400px", position: "relative" }}>
-    <img
-     src={
-      (restaurant.images && restaurant.images[0]) ||
-      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200"
-     }
-     alt={restaurant.name}
-     style={{ width: "100%", height: "100%", objectFit: "cover" }}
-    />
-    <div
-     style={{
-      position: "absolute",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: "150px",
-      background: "linear-gradient(to top, var(--bg-app), transparent)",
-     }}
-    />
+  <div className="min-h-screen bg-white pt-[68px]">
+   {/* ── Restaurant Header ── */}
+   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+    <h1 className="text-[28px] sm:text-[34px] font-black text-[#002b11] tracking-tight capitalize leading-tight mb-1">
+     {restaurant.name}
+    </h1>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+     {/* Rating bubbles */}
+     {averageRating > 0 && (
+      <div className="flex items-center gap-1.5">
+       <span className="font-bold text-[#002b11]">{averageRating}</span>
+       <div className="flex gap-0.5">
+        {[...Array(5)].map((_, i) => (
+         <div
+          key={i}
+          className={`w-[14px] h-[14px] rounded-full ${
+           i < Math.round(averageRating) ? "bg-[#00aa6c]" : "bg-gray-200"
+          }`}
+         />
+        ))}
+       </div>
+       <span className="text-gray-500">({reviewCount} reviews)</span>
+      </div>
+     )}
+     {restaurant.cuisine && (
+      <span className="text-gray-500">{restaurant.cuisine}</span>
+     )}
+     {restaurant.city && (
+      <span className="text-gray-500 flex items-center gap-1">
+       <MapPin size={13} /> {restaurant.city}
+      </span>
+     )}
+    </div>
    </div>
 
-   <main
-    className="container"
-    style={{
-     transform: "translateY(-60px)",
-     position: "relative",
-     zIndex: 10,
-    }}>
-    <div
-     style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "3rem" }}>
-     {/* Main Info */}
+   {/* ── Image Gallery ── */}
+   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="grid grid-cols-4 grid-rows-2 gap-2 rounded-2xl overflow-hidden h-[360px] sm:h-[420px]">
+     {/* Main large image */}
      <div
-      className="glass"
-      style={{ padding: "2rem", borderRadius: "var(--radius)" }}>
+      className="col-span-4 sm:col-span-3 row-span-2 relative cursor-pointer group"
+      onClick={() => {
+       setLightboxImage(images[0]);
+       setLightboxIndex(0);
+      }}>
+      <img
+       src={images[0]}
+       alt={restaurant.name}
+       className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+      />
+     </div>
+     {/* Side thumbnails */}
+     {images.slice(1, 3).map((img, i) => (
       <div
-       style={{
-        borderBottom: "1px solid var(--glass-border)",
-        paddingBottom: "2rem",
-        marginBottom: "2rem",
+       key={i}
+       className="hidden sm:block relative cursor-pointer group overflow-hidden"
+       onClick={() => {
+        setLightboxImage(img);
+        setLightboxIndex(i + 1);
        }}>
-       <h1
-        style={{
-         fontSize: "3rem",
-         margin: "0 0 1rem 0",
-         display: "flex",
-         alignItems: "center",
-         gap: "12px",
-         textTransform: "capitalize",
-        }}>
-        {restaurant.name}
-        {restaurant.is_featured && (
-         <svg
-          width="32"
-          height="32"
-          viewBox="0 0 40 40"
-          fill="none"
-          style={{ flexShrink: 0 }}>
-          <path
-           d="M19.998 3.094L14.638 0l-2.972 5.15H5.432v6.354L0 14.64 3.094 20 0 25.359l5.432 3.137v6.354h6.234L14.638 40l5.36-3.094L25.358 40l2.972-5.15h6.234v-6.354L40 25.359 36.905 20 40 14.641l-5.436-3.137V5.15h-6.234L25.358 0l-5.36 3.094z"
-           fill="#1DA1F2"
-          />
-          <path
-           d="M17.204 27.822l-6.904-6.904 2.828-2.828 4.076 4.076 8.876-8.876 2.828 2.828-11.704 11.704z"
-           fill="#fff"
-          />
-         </svg>
+       <img
+        src={img}
+        alt={`${restaurant.name} ${i + 2}`}
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+       />
+       {/* Photo count badge on last thumbnail */}
+       {i === 1 && images.length > 3 && (
+        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+         <div className="flex items-center gap-1.5 text-white font-bold text-sm">
+          <Camera size={16} />
+          <span>{images.length}</span>
+         </div>
+        </div>
+       )}
+      </div>
+     ))}
+    </div>
+   </div>
+
+   {/* ── Action Buttons Row ── */}
+   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex items-center gap-4 py-3 border-b border-gray-100">
+     <button
+      onClick={handleWriteReviewClick}
+      className="flex items-center gap-1.5 text-sm font-semibold text-[#002b11] hover:text-[#00aa6c] transition-colors cursor-pointer">
+      <PenLine size={15} /> Review
+     </button>
+     <button
+      onClick={() => setSaved(!saved)}
+      className="flex items-center gap-1.5 text-sm font-semibold text-[#002b11] hover:text-[#00aa6c] transition-colors cursor-pointer">
+      <Heart size={15} className={saved ? "fill-red-500 text-red-500" : ""} />{" "}
+      Save
+     </button>
+    </div>
+   </div>
+
+   {/* ── Tabs Navigation ── */}
+   <div className="sticky top-[68px] z-30 bg-white border-b border-gray-200">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+     <div className="flex gap-6">
+      {tabs.map((tab) => (
+       <button
+        key={tab.id}
+        onClick={() => scrollToSection(tab.id)}
+        className={`py-3.5 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
+         activeTab === tab.id
+          ? "border-[#002b11] text-[#002b11]"
+          : "border-transparent text-gray-400 hover:text-gray-600"
+        }`}>
+        {tab.label}
+       </button>
+      ))}
+     </div>
+    </div>
+   </div>
+
+   {/* ── Main Content ── */}
+   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-10">
+     {/* Left Column */}
+     <div>
+      {/* ── Overview Section ── */}
+      <section id="section-overview" className="mb-12">
+       <h2 className="text-[22px] font-black text-[#002b11] mb-4">
+        At a glance
+       </h2>
+       <div className="space-y-3">
+        {/* Hours */}
+        {(restaurant.opening_time || restaurant.closing_time) && (
+         <div className="flex items-center gap-2 text-sm">
+          <Clock size={16} className="text-[#00aa6c] shrink-0" />
+          <span className="text-[#00aa6c] font-semibold">
+           Open {restaurant.opening_time && `from ${restaurant.opening_time}`}
+           {restaurant.closing_time && ` until ${restaurant.closing_time}`}
+          </span>
+         </div>
         )}
-       </h1>
-
-       <div
-        style={{
-         display: "flex",
-         gap: "1.5rem",
-         alignItems: "center",
-         color: "var(--text-muted)",
-        }}>
-        <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-         <Star size={20} color="#fbbf24" fill="#fbbf24" />
-         <span style={{ color: "white", fontWeight: 600 }}>
-          {averageRating > 0 ? averageRating : "New"}
-         </span>{" "}
-         ({reviewCount} reviews)
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-         <ChefHat size={20} />
-         {restaurant.cuisine}
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-         <MapPin size={20} />
-         {restaurant.location}
-        </span>
+        {/* Location */}
+        {restaurant.location && (
+         <div className="flex items-center gap-2 text-sm text-gray-600">
+          <MapPin size={16} className="text-gray-400 shrink-0" />
+          <span>{restaurant.location}</span>
+         </div>
+        )}
+        {/* Cuisine */}
+        {restaurant.cuisine && (
+         <div className="flex items-center gap-2 text-sm text-gray-600">
+          <ChefHat size={16} className="text-gray-400 shrink-0" />
+          <span>{restaurant.cuisine}</span>
+         </div>
+        )}
        </div>
-      </div>
 
-      <div style={{ marginBottom: "3rem" }}>
-       <h3 style={{ fontSize: "1.5rem" }}>About</h3>
-       <p
-        style={{
-         lineHeight: 1.8,
-         fontSize: "1.1rem",
-         color: "var(--text-muted)",
-        }}>
-        {restaurant.description}
-       </p>
-      </div>
+       {/* About */}
+       {restaurant.description && (
+        <div className="mt-8">
+         <h3 className="text-lg font-bold text-[#002b11] mb-2">About</h3>
+         <p className="text-[15px] text-gray-600 leading-relaxed">
+          {restaurant.description}
+         </p>
+        </div>
+       )}
 
-      <div style={{ marginBottom: "3rem" }}>
-       <h3 style={{ fontSize: "1.5rem" }}>Menu Highlights</h3>
-       <div
-        style={{
-         display: "grid",
-         gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-         gap: "1.5rem",
-        }}>
+       {/* Tags / Features */}
+       {restaurant.tags && restaurant.tags.length > 0 && (
+        <div className="mt-6">
+         <h4 className="text-sm font-bold text-[#002b11] mb-3">Features</h4>
+         <div className="flex flex-wrap gap-2">
+          {restaurant.tags.map((tag) => (
+           <span
+            key={tag}
+            className="flex items-center gap-1 px-3 py-1.5 bg-[#f7f7f7] rounded-full text-xs font-semibold text-gray-600">
+            <Check size={12} className="text-[#00aa6c]" />
+            {tag}
+           </span>
+          ))}
+         </div>
+        </div>
+       )}
+
+       {/* Hours Table */}
+       {restaurant.active_days && restaurant.active_days.length > 0 && (
+        <div className="mt-8 p-5 border border-gray-200 rounded-xl">
+         <div className="flex items-center justify-between mb-4">
+          <h4 className="text-lg font-bold text-[#002b11]">Hours</h4>
+         </div>
+         {(restaurant.opening_time || restaurant.closing_time) && (
+          <p className="text-sm text-[#00aa6c] font-semibold mb-3">
+           Open {restaurant.opening_time || ""} -{" "}
+           {restaurant.closing_time || ""}
+          </p>
+         )}
+         <div className="space-y-2">
+          {restaurant.active_days.map((day) => (
+           <div key={day} className="flex justify-between text-sm">
+            <span className="font-semibold text-[#002b11]">{day}</span>
+            <span className="text-gray-500">
+             {restaurant.opening_time || "—"} - {restaurant.closing_time || "—"}
+            </span>
+           </div>
+          ))}
+         </div>
+        </div>
+       )}
+      </section>
+
+      {/* ── Menu Section ── */}
+      <section id="section-menu" className="mb-12">
+       <h2 className="text-[22px] font-black text-[#002b11] mb-6">
+        Menu Highlights
+       </h2>
+       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {restaurant.menu?.highlights?.map((item, i) => (
          <div
           key={i}
-          style={{
-           border: "1px solid var(--glass-border)",
-           borderRadius: "12px",
-           overflow: "hidden",
-           background: "rgba(255,255,255,0.03)",
-           transition: "transform 0.2s, box-shadow 0.2s",
-          }}>
+          className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow group">
           {item.image ? (
            <div
             onClick={() => setLightboxImage(item.image)}
-            style={{
-             width: "100%",
-             height: "180px",
-             overflow: "hidden",
-             cursor: "pointer",
-            }}>
+            className="h-44 overflow-hidden cursor-pointer">
             <img
              src={item.image}
              alt={item.name}
-             style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              display: "block",
-              transition: "transform 0.3s",
-             }}
-             onMouseOver={(e) =>
-              (e.currentTarget.style.transform = "scale(1.05)")
-             }
-             onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
+             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
            </div>
           ) : (
-           <div
-            style={{
-             width: "100%",
-             height: "120px",
-             background: "rgba(148, 163, 184, 0.1)",
-             display: "flex",
-             alignItems: "center",
-             justifyContent: "center",
-            }}>
-            <ChefHat
-             size={32}
-             style={{ color: "var(--text-muted)", opacity: 0.4 }}
-            />
+           <div className="h-32 bg-[#f7f7f7] flex items-center justify-center">
+            <ChefHat size={28} className="text-gray-300" />
            </div>
           )}
-          <div style={{ padding: "1rem" }}>
-           <div
-            style={{
-             display: "flex",
-             justifyContent: "space-between",
-             alignItems: "flex-start",
-             marginBottom: "0.5rem",
-            }}>
-            <span style={{ fontWeight: 600, fontSize: "1rem" }}>
+          <div className="p-4">
+           <div className="flex justify-between items-start mb-1">
+            <span className="font-bold text-[#002b11] text-[15px]">
              {item.name}
             </span>
             {item.price && (
-             <span
-              style={{
-               color: "var(--secondary)",
-               fontWeight: 700,
-               fontSize: "0.95rem",
-               flexShrink: 0,
-               marginLeft: "0.75rem",
-              }}>
+             <span className="text-[#00aa6c] font-bold text-sm shrink-0 ml-3">
               Rs. {item.price}
              </span>
             )}
            </div>
            {item.description && (
-            <p
-             style={{
-              margin: 0,
-              fontSize: "0.9rem",
-              color: "var(--text-muted)",
-              lineHeight: 1.5,
-             }}>
+            <p className="text-sm text-gray-500 leading-relaxed mt-1">
              {item.description}
             </p>
            )}
            {item.category && (
-            <span
-             style={{
-              display: "inline-block",
-              marginTop: "0.5rem",
-              padding: "0.2rem 0.6rem",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              borderRadius: "999px",
-              background: "rgba(139, 92, 246, 0.15)",
-              color: "var(--primary)",
-             }}>
+            <span className="inline-block mt-2 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-[#00aa6c]/10 text-[#00aa6c]">
              {item.category}
             </span>
            )}
           </div>
          </div>
-        )) || <p className="text-muted">No menu highlights available.</p>}
+        )) || (
+         <p className="text-gray-400 text-sm col-span-2">
+          No menu highlights available yet.
+         </p>
+        )}
        </div>
-      </div>
+      </section>
 
-      <div style={{ marginBottom: "2rem" }}>
-       <div
-        style={{
-         display: "flex",
-         justifyContent: "space-between",
-         alignItems: "center",
-         marginBottom: "1.5rem",
-        }}>
-        <h3 style={{ fontSize: "1.5rem", margin: 0 }}>
-         What people are saying
-        </h3>
+      {/* ── Location Section ── */}
+      <section id="section-location" className="mb-12">
+       <h2 className="text-[22px] font-black text-[#002b11] mb-4">Location</h2>
+       <div className="grid grid-cols-1 sm:grid-cols-[240px_1fr] gap-4 items-start">
+        {/* Map */}
+        <div className="h-[200px] sm:h-full rounded-xl overflow-hidden border border-gray-200 bg-gray-100">
+         {restaurant.location_link ? (
+          <iframe
+           src={(() => {
+            const link = restaurant.location_link;
+            if (link.includes("/embed")) return link;
+            const coordMatch = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+            if (coordMatch) {
+             return `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d3000!2d${coordMatch[2]}!3d${coordMatch[1]}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2s!4v1`;
+            }
+            const q = encodeURIComponent(restaurant.location || link);
+            return `https://www.google.com/maps?q=${q}&output=embed`;
+           })()}
+           width="100%"
+           height="100%"
+           style={{ border: 0 }}
+           allowFullScreen
+           loading="lazy"
+           referrerPolicy="no-referrer-when-downgrade"
+          />
+         ) : (
+          <div className="h-full flex flex-col items-center justify-center text-gray-300">
+           <MapPin size={28} className="mb-1" />
+           <span className="text-xs">Map unavailable</span>
+          </div>
+         )}
+        </div>
+
+        {/* Address Details */}
+        <div className="space-y-3">
+         {restaurant.location && (
+          <div className="flex items-start gap-2">
+           <MapPin size={16} className="text-gray-400 mt-0.5 shrink-0" />
+           <span className="text-sm text-gray-700">{restaurant.location}</span>
+          </div>
+         )}
+         {restaurant.location_link && (
+          <a
+           href={restaurant.location_link}
+           target="_blank"
+           rel="noopener noreferrer"
+           className="inline-flex items-center gap-1.5 text-sm text-[#00aa6c] font-semibold hover:underline">
+           <MapPin size={14} /> Open in Google Maps
+          </a>
+         )}
+        </div>
+       </div>
+      </section>
+
+      {/* ── Reviews Section ── */}
+      <section id="section-reviews" className="mb-12">
+       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <h2 className="text-[22px] font-black text-[#002b11]">Reviews</h2>
         <button
-         className="btn btn-primary"
          onClick={handleWriteReviewClick}
-         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          padding: "0.6rem 1.2rem",
-         }}>
-         <PenLine size={18} />
-         Write a Review
+         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#002b11] text-white text-sm font-bold hover:bg-[#004d1f] transition-colors cursor-pointer">
+         <PenLine size={15} />
+         Write a review
         </button>
        </div>
-       <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-        {/* DB Reviews */}
+
+       {/* Rating Summary */}
+       {reviewCount > 0 && (
+        <div className="flex flex-col sm:flex-row gap-8 mb-8 p-6 bg-[#f7f7f7] rounded-xl">
+         {/* Left - Big Rating */}
+         <div className="text-center sm:text-left shrink-0">
+          <p className="text-5xl font-black text-[#002b11] leading-none">
+           {averageRating}
+          </p>
+          <p className="text-sm font-bold text-[#002b11] mt-1">
+           {getRatingLabel(Number(averageRating))}
+          </p>
+          <div className="flex gap-0.5 mt-2 justify-center sm:justify-start">
+           {[...Array(5)].map((_, i) => (
+            <div
+             key={i}
+             className={`w-[14px] h-[14px] rounded-full ${
+              i < Math.round(averageRating) ? "bg-[#00aa6c]" : "bg-gray-200"
+             }`}
+            />
+           ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-1">({reviewCount})</p>
+         </div>
+
+         {/* Right - Distribution Bars */}
+         <div className="flex-1 space-y-1.5">
+          {ratingDistribution.map((item, i) => (
+           <div key={item.stars} className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-gray-500 w-16 text-right">
+             {ratingLabels[i]}
+            </span>
+            <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
+             <div
+              className="h-full bg-[#00aa6c] rounded-full"
+              style={{
+               width:
+                reviewCount > 0 ? `${(item.count / reviewCount) * 100}%` : "0%",
+              }}
+             />
+            </div>
+            <span className="text-xs text-gray-400 w-6">{item.count}</span>
+           </div>
+          ))}
+         </div>
+        </div>
+       )}
+
+       {/* Individual Reviews */}
+       <div className="space-y-0">
         {dbReviews.map((review, i) => (
          <div
           key={`db-${i}`}
-          style={{
-           padding: "1.5rem",
-           background: "rgba(255,255,255,0.03)",
-           borderRadius: "12px",
-          }}>
-          <div
-           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-            marginBottom: "1rem",
-           }}>
-           <div
-            style={{
-             width: "40px",
-             height: "40px",
-             borderRadius: "50%",
-             background: "rgba(255,255,255,0.08)",
-             display: "flex",
-             alignItems: "center",
-             justifyContent: "center",
-            }}>
-            <UserCircle
-             size={36}
-             style={{ color: "var(--text-muted)", opacity: 0.7 }}
-            />
+          className="py-5 border-b border-gray-100 last:border-0">
+          <div className="flex items-start gap-3">
+           {/* Avatar */}
+           <div className="w-10 h-10 rounded-full bg-[#f7f7f7] flex items-center justify-center shrink-0">
+            <UserCircle size={28} className="text-gray-300" />
            </div>
-           <div>
-            <div
-             style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-             <span style={{ fontWeight: 600 }}>{review.user_name}</span>
+
+           <div className="flex-1 min-w-0">
+            {/* Name + Badge */}
+            <div className="flex items-center gap-2 mb-0.5">
+             <span className="font-bold text-[#002b11] text-sm">
+              {review.user_name}
+             </span>
              {review.user_id &&
               verifiedUserIds.some(
                (vid) => String(vid) === String(review.user_id),
               ) && (
-               <span
-                style={{
-                 display: "inline-flex",
-                 alignItems: "center",
-                 gap: "3px",
-                 background: "rgba(16, 185, 129, 0.15)",
-                 color: "#10b981",
-                 fontSize: "0.7rem",
-                 fontWeight: 700,
-                 padding: "2px 8px",
-                 borderRadius: "999px",
-                 letterSpacing: "0.02em",
-                }}>
-                <ShieldCheck size={12} />
-                Verified
+               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#00aa6c]/10 text-[#00aa6c] text-[10px] font-bold">
+                <ShieldCheck size={10} /> Verified
                </span>
               )}
             </div>
-            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+
+            {/* Date */}
+            <p className="text-xs text-gray-400 mb-2">
              {review.created_at
-              ? new Date(review.created_at).toLocaleDateString()
+              ? new Date(review.created_at).toLocaleDateString("en-US", {
+                 year: "numeric",
+                 month: "long",
+                 day: "numeric",
+                })
               : "Recently"}
+            </p>
+
+            {/* Stars */}
+            <div className="flex gap-0.5 mb-2">
+             {[...Array(5)].map((_, idx) => (
+              <div
+               key={idx}
+               className={`w-[13px] h-[13px] rounded-full ${
+                idx < review.rating ? "bg-[#00aa6c]" : "bg-gray-200"
+               }`}
+              />
+             ))}
             </div>
-           </div>
-           <div style={{ marginLeft: "auto", display: "flex", gap: "2px" }}>
-            {[...Array(5)].map((_, idx) => (
-             <Star
-              key={idx}
-              size={16}
-              fill={idx < review.rating ? "#fbbf24" : "none"}
-              color={idx < review.rating ? "#fbbf24" : "#666"}
-             />
-            ))}
+
+            {/* Comment */}
+            <p className="text-sm text-gray-700 leading-relaxed">
+             {review.comment}
+            </p>
+
+            {/* Owner Reply */}
+            {review.owner_reply && (
+             <div className="mt-3 ml-3 pl-4 border-l-2 border-gray-200">
+              <div className="bg-[#f7f7f7] rounded-lg p-3">
+               <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-xs font-bold text-[#00aa6c]">
+                 {restaurant?.name || "Restaurant"} replied
+                </span>
+                {review.replied_at && (
+                 <span className="text-[10px] text-gray-400">
+                  · {new Date(review.replied_at).toLocaleDateString()}
+                 </span>
+                )}
+               </div>
+               <p className="text-sm text-gray-600 leading-relaxed">
+                {review.owner_reply}
+               </p>
+              </div>
+             </div>
+            )}
            </div>
           </div>
-          <p style={{ margin: 0, lineHeight: 1.6 }}>{review.comment}</p>
-
-          {/* Owner Reply — Play Store style */}
-          {review.owner_reply && (
-           <div
-            style={{
-             marginTop: "0.75rem",
-             marginLeft: "1rem",
-             paddingLeft: "1rem",
-             borderLeft: "3px solid rgba(255,255,255,0.1)",
-            }}>
-            <div
-             style={{
-              background: "rgba(255,255,255,0.05)",
-              borderRadius: "10px",
-              padding: "0.85rem 1rem",
-             }}>
-             <div
-              style={{
-               display: "flex",
-               alignItems: "center",
-               gap: "0.5rem",
-               marginBottom: "0.4rem",
-              }}>
-              <span
-               style={{
-                fontSize: "0.8rem",
-                fontWeight: 700,
-                color: "var(--primary, #8b5cf6)",
-               }}>
-               {restaurant?.name || "Restaurant"} replied
-              </span>
-              {review.replied_at && (
-               <span
-                style={{
-                 fontSize: "0.7rem",
-                 color: "var(--text-muted)",
-                }}>
-                · {new Date(review.replied_at).toLocaleDateString()}
-               </span>
-              )}
-             </div>
-             <p
-              style={{
-               margin: 0,
-               fontSize: "0.88rem",
-               lineHeight: 1.55,
-               color: "rgba(255,255,255,0.7)",
-              }}>
-              {review.owner_reply}
-             </p>
-            </div>
-           </div>
-          )}
          </div>
         ))}
 
         {dbReviews.length === 0 && (
-         <p className="text-muted">No reviews yet. Be the first to review!</p>
-        )}
-       </div>
-      </div>
-     </div>
-
-     {/* Sidebar */}
-     <div>
-      <BookingWidget restaurant={restaurant} />
-      <div
-       style={{
-        marginTop: "2rem",
-        padding: "1.5rem",
-        background: "rgba(255,255,255,0.03)",
-        borderRadius: "12px",
-       }}>
-       <h4 style={{ margin: "0 0 1rem 0" }}>Location</h4>
-       <div
-        style={{
-         height: "200px",
-         background: "#334155",
-         borderRadius: "8px",
-         overflow: "hidden",
-         position: "relative",
-        }}>
-        {restaurant.location_link ? (
-         <iframe
-          src={(() => {
-           const link = restaurant.location_link;
-           // If it's already an embed link, use as-is
-           if (link.includes("/embed")) return link;
-           // Extract coordinates or query from Google Maps link
-           const coordMatch = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-           if (coordMatch) {
-            return `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d3000!2d${coordMatch[2]}!3d${coordMatch[1]}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2s!4v1`;
-           }
-           // Fallback: use the link as a search query embed
-           const q = encodeURIComponent(restaurant.location || link);
-           return `https://www.google.com/maps?q=${q}&output=embed`;
-          })()}
-          width="100%"
-          height="100%"
-          style={{ border: 0 }}
-          allowFullScreen
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-         />
-        ) : (
-         <div
-          style={{
-           height: "100%",
-           display: "flex",
-           alignItems: "center",
-           justifyContent: "center",
-           flexDirection: "column",
-          }}>
-          <MapPin
-           size={32}
-           className="text-muted"
-           style={{ marginBottom: "0.5rem" }}
-          />
-          <span className="text-muted">Map view unavailable</span>
+         <div className="text-center py-10">
+          <p className="text-gray-400 text-sm mb-3">
+           No reviews yet. Be the first to review!
+          </p>
+          <button
+           onClick={handleWriteReviewClick}
+           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#002b11] text-white text-sm font-bold hover:bg-[#004d1f] transition-colors cursor-pointer">
+           <PenLine size={15} /> Write a review
+          </button>
          </div>
         )}
        </div>
-       {restaurant.location_link && (
-        <a
-         href={restaurant.location_link}
-         target="_blank"
-         rel="noopener noreferrer"
-         style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "0.4rem",
-          marginTop: "0.75rem",
-          fontSize: "0.85rem",
-          color: "#60a5fa",
-          textDecoration: "none",
-         }}>
-         <MapPin size={14} />
-         Open in Google Maps
-        </a>
-       )}
-       {restaurant.location && (
-        <p
-         style={{
-          marginTop: "0.75rem",
-          fontSize: "0.9rem",
-          color: "var(--text-muted)",
-         }}>
-         {restaurant.location}
-        </p>
-       )}
+      </section>
+     </div>
+
+     {/* ── Right Sidebar ── */}
+     <div className="hidden lg:block">
+      <div className="sticky top-[130px] space-y-5">
+       {/* Booking Widget */}
+       <BookingWidget restaurant={restaurant} />
+
+       {/* Save Card */}
+       {/* <div className="border border-gray-200 rounded-xl p-5">
+        <h4 className="text-lg font-bold text-[#002b11] mb-3">
+         Save this restaurant
+        </h4>
+        <button
+         onClick={() => setSaved(!saved)}
+         className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 font-semibold text-sm transition-all cursor-pointer ${
+          saved
+           ? "border-red-200 bg-red-50 text-red-500"
+           : "border-gray-200 text-[#002b11] hover:border-gray-300"
+         }`}>
+         <Heart size={16} className={saved ? "fill-red-500" : ""} />
+         {saved ? "Saved" : "Save"}
+        </button>
+       </div> */}
       </div>
      </div>
     </div>
-   </main>
-   {/* Image Lightbox */}
-   {lightboxImage && (
-    <div
-     onClick={() => setLightboxImage(null)}
-     style={{
-      position: "fixed",
-      inset: 0,
-      zIndex: 9999,
-      background: "rgba(0, 0, 0, 0.85)",
-      backdropFilter: "blur(8px)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "zoom-out",
-      animation: "fadeIn 0.2s ease-out",
-     }}>
-     <button
+   </div>
+
+   {/* ── Image Lightbox ── */}
+   <AnimatePresence>
+    {lightboxImage && (
+     <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       onClick={() => setLightboxImage(null)}
-      style={{
-       position: "absolute",
-       top: "1.5rem",
-       right: "1.5rem",
-       background: "rgba(255,255,255,0.15)",
-       border: "none",
-       color: "white",
-       width: "44px",
-       height: "44px",
-       borderRadius: "50%",
-       fontSize: "1.5rem",
-       cursor: "pointer",
-       display: "flex",
-       alignItems: "center",
-       justifyContent: "center",
-       transition: "background 0.2s",
-      }}
-      onMouseOver={(e) =>
-       (e.currentTarget.style.background = "rgba(255,255,255,0.3)")
-      }
-      onMouseOut={(e) =>
-       (e.currentTarget.style.background = "rgba(255,255,255,0.15)")
-      }>
-      ✕
-     </button>
-     <img
-      src={lightboxImage}
-      alt="Full preview"
-      onClick={(e) => e.stopPropagation()}
-      style={{
-       width: "100vw",
-       height: "100vh",
-       objectFit: "contain",
-       padding: "1rem",
-       cursor: "default",
-      }}
-     />
-    </div>
-   )}
+      className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex items-center justify-center cursor-zoom-out">
+      <button
+       onClick={() => setLightboxImage(null)}
+       className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer">
+       <XIcon size={20} />
+      </button>
+
+      {/* Nav arrows */}
+      {images.length > 1 && (
+       <>
+        <button
+         onClick={(e) => {
+          e.stopPropagation();
+          const prev = (lightboxIndex - 1 + images.length) % images.length;
+          setLightboxIndex(prev);
+          setLightboxImage(images[prev]);
+         }}
+         className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer">
+         <ChevronLeft size={22} />
+        </button>
+        <button
+         onClick={(e) => {
+          e.stopPropagation();
+          const next = (lightboxIndex + 1) % images.length;
+          setLightboxIndex(next);
+          setLightboxImage(images[next]);
+         }}
+         className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer">
+         <ChevronRight size={22} />
+        </button>
+       </>
+      )}
+
+      <img
+       src={lightboxImage}
+       alt="Full preview"
+       onClick={(e) => e.stopPropagation()}
+       className="max-w-[90vw] max-h-[85vh] object-contain cursor-default"
+      />
+
+      {/* Image counter */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-black/60 text-white text-xs font-semibold">
+       {lightboxIndex + 1} / {images.length}
+      </div>
+     </motion.div>
+    )}
+   </AnimatePresence>
 
    <ReviewModal
     isOpen={isReviewFormOpen}
@@ -716,82 +789,46 @@ export default function RestaurantDetails() {
    />
 
    {/* Eligibility Popup */}
-   {showEligibilityPopup && (
-    <div
-     onClick={() => setShowEligibilityPopup(false)}
-     style={{
-      position: "fixed",
-      inset: 0,
-      zIndex: 1000,
-      background: "rgba(0,0,0,0.7)",
-      backdropFilter: "blur(5px)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-     }}>
-     <div
-      className="glass"
-      onClick={(e) => e.stopPropagation()}
-      style={{
-       width: "100%",
-       maxWidth: "420px",
-       padding: "2.5rem",
-       borderRadius: "16px",
-       textAlign: "center",
-       border: "1px solid rgba(255,255,255,0.1)",
-       position: "relative",
-      }}>
-      <button
-       onClick={() => setShowEligibilityPopup(false)}
-       style={{
-        position: "absolute",
-        top: "1rem",
-        right: "1rem",
-        background: "none",
-        border: "none",
-        color: "var(--text-muted)",
-        cursor: "pointer",
-       }}>
-       <XIcon size={20} />
-      </button>
+   <AnimatePresence>
+    {showEligibilityPopup && (
+     <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={() => setShowEligibilityPopup(false)}
+      className="fixed inset-0 z-[1000] bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
+      <motion.div
+       initial={{ scale: 0.95, opacity: 0 }}
+       animate={{ scale: 1, opacity: 1 }}
+       exit={{ scale: 0.95, opacity: 0 }}
+       onClick={(e) => e.stopPropagation()}
+       className="bg-white w-full max-w-[400px] rounded-2xl p-8 text-center relative">
+       <button
+        onClick={() => setShowEligibilityPopup(false)}
+        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer">
+        <XIcon size={18} />
+       </button>
 
-      <div
-       style={{
-        width: "64px",
-        height: "64px",
-        borderRadius: "50%",
-        background: "rgba(251, 191, 36, 0.15)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        margin: "0 auto 1.5rem",
-       }}>
-       <CalendarCheck size={32} style={{ color: "#fbbf24" }} />
-      </div>
+       <div className="w-16 h-16 rounded-full bg-[#00aa6c]/10 flex items-center justify-center mx-auto mb-5">
+        <CalendarCheck size={30} className="text-[#00aa6c]" />
+       </div>
 
-      <h3
-       style={{ fontSize: "1.3rem", fontWeight: 700, marginBottom: "0.75rem" }}>
-       Reservation Required
-      </h3>
-      <p
-       style={{
-        color: "var(--text-muted)",
-        lineHeight: 1.7,
-        fontSize: "0.95rem",
-        marginBottom: "1.5rem",
-       }}>
-       You can write a review only after completing a reservation at this
-       restaurant. Book a table and dine with us first!
-      </p>
-      <button
-       onClick={() => setShowEligibilityPopup(false)}
-       className="btn btn-primary"
-       style={{ width: "100%" }}>
-       Got it
-      </button>
-     </div>
-    </div>
-   )}
+       <h3 className="text-xl font-bold text-[#002b11] mb-2">
+        Reservation Required
+       </h3>
+       <p className="text-sm text-gray-500 leading-relaxed mb-6">
+        You can write a review only after completing a reservation at this
+        restaurant. Book a table and dine with us first!
+       </p>
+       <button
+        onClick={() => setShowEligibilityPopup(false)}
+        className="w-full py-3 rounded-full bg-[#002b11] hover:bg-[#004d1f] text-white font-bold text-sm transition-colors cursor-pointer">
+        Got it
+       </button>
+      </motion.div>
+     </motion.div>
+    )}
+   </AnimatePresence>
   </div>
  );
 }

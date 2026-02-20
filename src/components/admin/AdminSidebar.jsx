@@ -5,7 +5,9 @@ import {
  CalendarClock,
  Users,
  Star,
+ MessageSquareHeart,
  Headset,
+ Megaphone,
  LogOut,
  ShieldCheck,
  Volume2,
@@ -75,6 +77,18 @@ const AdminSidebar = ({ activeTab, setActiveTab, onLogout }) => {
      label="Reviews"
      active={activeTab === "Reviews"}
      onClick={() => setActiveTab("Reviews")}
+    />
+    <SidebarItem
+     icon={MessageSquareHeart}
+     label="Web Reviews"
+     active={activeTab === "Web Reviews"}
+     onClick={() => setActiveTab("Web Reviews")}
+    />
+    <SidebarItem
+     icon={Megaphone}
+     label="Banner Ads"
+     active={activeTab === "Banner Ads"}
+     onClick={() => setActiveTab("Banner Ads")}
     />
     <SidebarItem
      icon={Headset}

@@ -223,7 +223,7 @@ export default function BookingWidget({ restaurant }) {
     className="glass"
     style={{
      padding: "2rem",
-     borderRadius: "var(--radius)",
+     borderRadius: "18px",
      textAlign: "center",
      boxShadow: "var(--shadow-lg)",
      position: "sticky",
@@ -434,7 +434,7 @@ export default function BookingWidget({ restaurant }) {
    className="glass"
    style={{
     padding: "1.5rem",
-    borderRadius: "var(--radius)",
+    borderRadius: "18px",
     position: "sticky",
     top: "100px",
     boxShadow: "var(--shadow-lg)",

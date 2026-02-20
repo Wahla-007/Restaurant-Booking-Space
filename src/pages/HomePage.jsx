@@ -1,13 +1,17 @@
 import HeroSearch from "../components/HeroSearch";
 import RestaurantCard from "../components/RestaurantCard";
+import WebReviewForm from "../components/WebReviewForm";
+import ReviewCarousel from "../components/ReviewCarousel";
 import { fuzzyMatch } from "../utils/searchUtils";
 import useDebounce from "../hooks/useDebounce";
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import AppDownloadPopup from "../components/AppDownloadPopup";
+import AdBanner from "../components/AdBanner";
 import {
  Utensils,
  Wine,
@@ -32,37 +36,16 @@ const cuisineCategories = [
  { name: "OutDoor", icon: ChefHat },
 ];
 
-const testimonials = [
- {
-  quote:
-   "ReserveKaru completely transformed how we discover restaurants. The experience is seamless and the quality is unmatched.",
-  author: "Sarah Mitchell",
-  title: "Food Critic, The Gourmet Times",
-  rating: 5,
- },
- {
-  quote:
-   "Every reservation has been flawless. From Michelin-starred gems to hidden local treasures — this platform delivers.",
-  author: "James Chen",
-  title: "Executive, Tech Ventures",
-  rating: 5,
- },
- {
-  quote:
-   "The attention to detail is extraordinary. It's like having a personal concierge for dining experiences.",
-  author: "Priya Sharma",
-  title: "Lifestyle Blogger",
-  rating: 5,
- },
-];
-
 export default function HomePage() {
  const { user } = useAuth();
+ const { addToast } = useToast();
  const navigate = useNavigate();
  const [allRestaurants, setAllRestaurants] = useState([]);
  const [filteredRestaurants, setFilteredRestaurants] = useState([]);
  const [loading, setLoading] = useState(true);
  const [searchQuery, setSearchQuery] = useState("");
+ const [webReviews, setWebReviews] = useState([]);
+ const [reviewFormOpen, setReviewFormOpen] = useState(false);
  const debouncedQuery = useDebounce(searchQuery, 1000);
 
  useEffect(() => {
@@ -146,6 +129,26 @@ export default function HomePage() {
   loadData();
  }, []);
 
+ // Fetch approved web reviews
+ const fetchWebReviews = async () => {
+  try {
+   const { data, error } = await supabase
+    .from("web_reviews")
+    .select("*")
+    .eq("is_approved", true)
+    .order("created_at", { ascending: false });
+
+   if (data) setWebReviews(data);
+   if (error) console.error("Error fetching web reviews:", error);
+  } catch (err) {
+   console.error("Error fetching web reviews:", err);
+  }
+ };
+
+ useEffect(() => {
+  fetchWebReviews();
+ }, []);
+
  useEffect(() => {
   if (!debouncedQuery) {
    setFilteredRestaurants(allRestaurants);
@@ -196,6 +199,56 @@ export default function HomePage() {
    {/* Hero Section */}
    <HeroSearch onSearch={handleSearch} restaurants={allRestaurants} />
 
+   {/* Business CTA Banner */}
+   <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
+    <motion.div
+     initial={{ opacity: 0, y: 20 }}
+     whileInView={{ opacity: 1, y: 0 }}
+     viewport={{ once: true }}
+     transition={{ duration: 0.5 }}
+     onClick={() => navigate("/business")}
+     className="relative bg-[#002b11] rounded-2xl overflow-hidden flex flex-col md:flex-row cursor-pointer group hover:shadow-xl transition-shadow duration-300">
+     {/* Left — Image (50%) */}
+     <div className="relative w-full md:w-1/2 min-h-[260px] md:min-h-[340px] p-5 md:p-6">
+      <div className="relative w-full h-full rounded-xl overflow-hidden">
+       <img
+        src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80"
+        alt="Restaurant business"
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+       />
+      </div>
+     </div>
+
+     {/* Right — Content (50%) */}
+     <div className="w-full md:w-1/2 flex flex-col justify-center p-8 md:py-12 md:px-10">
+      <div className="flex items-center gap-2 mb-5">
+       <img
+        src="/logo/logo.svg"
+        alt="ReserveKaru"
+        className="w-8 h-8 brightness-0 invert"
+       />
+       <span className="text-white/70 text-[20px] font-bold tracking-wide">
+        ReserveKaru Insights
+       </span>
+      </div>
+
+      <h2 className="text-4xl sm:text-5xl md:text-[56px] lg:text-[82px] font-[900] text-white leading-[0.8] tracking-tight mb-5">
+       Grow Your <br /> Restaurant <br /> Business
+      </h2>
+
+      <p className="text-white/60 text-base mb-8 max-w-md leading-relaxed">
+       List your restaurant, manage reservations, and reach thousands of diners.
+      </p>
+
+      <div>
+       <span className="inline-block px-7 py-3.5 bg-white text-[#002b11] text-sm font-bold rounded-full group-hover:shadow-lg transition-all duration-200">
+        Get Started
+       </span>
+      </div>
+     </div>
+    </motion.div>
+   </div>
+
    {/* Divider */}
    <div className="max-w-7xl mx-auto px-6 lg:px-8">
     <div className="h-px bg-gray-100" />
@@ -203,7 +256,7 @@ export default function HomePage() {
 
    {/* Featured Restaurants */}
    {featuredRestaurants.length > 0 && (
-    <section className="py-16 sm:py-20">
+    <section className="py-10 sm:py-10">
      <div className="max-w-7xl mx-auto px-6 lg:px-8">
       <motion.div
        initial={{ opacity: 0, y: 16 }}
@@ -241,7 +294,7 @@ export default function HomePage() {
    )}
 
    {/* Cuisine Categories */}
-   <section id="cuisines" className="py-16 sm:py-20 bg-[#f7f7f7]">
+   <section id="cuisines" className="py-16 sm:py-12 bg-[#f7f7f7]">
     <div className="max-w-7xl mx-auto px-6 lg:px-8">
      <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -352,7 +405,7 @@ export default function HomePage() {
    </section>
 
    {/* Why Choose Us */}
-   <section id="about" className="py-16 sm:py-20 bg-[#f7f7f7]">
+   <section id="about" className="py-16 sm:py-16 bg-[#f7f7f7]">
     <div className="max-w-7xl mx-auto px-6 lg:px-8">
      <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -417,7 +470,10 @@ export default function HomePage() {
     </div>
    </section>
 
-   {/* Testimonials */}
+   {/* Ad Banner */}
+   <AdBanner />
+
+   {/* Testimonials — Infinite Carousel */}
    <section id="reviews" className="py-16 sm:py-20">
     <div className="max-w-7xl mx-auto px-6 lg:px-8">
      <motion.div
@@ -425,41 +481,72 @@ export default function HomePage() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
-      className="text-center mb-14">
-      <span className="text-xs font-bold tracking-widest text-[#00aa6c] uppercase mb-1 block">
-       Testimonials
-      </span>
-      <h2 className="text-2xl sm:text-3xl font-extrabold text-[#002b11] tracking-tight">
-       Loved by Diners
-      </h2>
+      className="flex items-end justify-between mb-10">
+      <div>
+       <span className="text-xs font-bold tracking-widest text-[#00aa6c] uppercase mb-1 block">
+        Testimonials
+       </span>
+       <h2 className="text-2xl sm:text-3xl font-extrabold text-[#002b11] tracking-tight">
+        Loved by Diners
+       </h2>
+      </div>
+      <motion.button
+       whileHover={{ scale: 1.03 }}
+       whileTap={{ scale: 0.97 }}
+       onClick={() => {
+        if (!user) {
+         addToast("Please sign in to write a review.", "error");
+         navigate("/login");
+         return;
+        }
+        setReviewFormOpen(true);
+       }}
+       className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#002b11] text-white text-sm font-bold hover:bg-[#004d1f] transition-colors shadow-sm cursor-pointer">
+       <Star size={14} className="fill-white" />
+       Write a Review
+      </motion.button>
      </motion.div>
+    </div>
 
-     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {testimonials.map((t, index) => (
-       <motion.div
-        key={t.author}
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.4, delay: index * 0.1 }}
-        className="bg-white p-8 rounded-2xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-300">
-        <div className="flex items-center gap-0.5 mb-5">
-         {[...Array(t.rating)].map((_, i) => (
-          <Star key={i} size={16} className="text-[#00aa6c] fill-[#00aa6c]" />
-         ))}
-        </div>
-        <p className="text-[#002b11]/70 text-sm leading-relaxed mb-6">
-         "{t.quote}"
-        </p>
-        <div className="border-t border-gray-50 pt-4">
-         <p className="text-sm font-bold text-[#002b11]">{t.author}</p>
-         <p className="text-xs text-gray-400 mt-0.5">{t.title}</p>
-        </div>
-       </motion.div>
-      ))}
-     </div>
+    {/* Full-width carousel (no max-w constraint) */}
+    <div className="pl-6 lg:pl-[max(1.5rem,calc((100vw-80rem)/2+1.5rem))]">
+     {webReviews.length > 0 ? (
+      <ReviewCarousel reviews={webReviews} />
+     ) : (
+      <div className="text-center py-12">
+       <p className="text-gray-400 text-sm">
+        No reviews yet. Be the first to share your experience!
+       </p>
+      </div>
+     )}
+    </div>
+
+    {/* Mobile write button */}
+    <div className="max-w-7xl mx-auto px-6 lg:px-8 mt-8 sm:hidden">
+     <motion.button
+      whileHover={{ scale: 1.03 }}
+      whileTap={{ scale: 0.97 }}
+      onClick={() => {
+       if (!user) {
+        addToast("Please sign in to write a review.", "error");
+        navigate("/login");
+        return;
+       }
+       setReviewFormOpen(true);
+      }}
+      className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-[#002b11] text-white text-sm font-bold hover:bg-[#004d1f] transition-colors shadow-sm cursor-pointer">
+      <Star size={14} className="fill-white" />
+      Write a Review
+     </motion.button>
     </div>
    </section>
+
+   {/* Review Form Modal */}
+   <WebReviewForm
+    isOpen={reviewFormOpen}
+    onClose={() => setReviewFormOpen(false)}
+    onSubmitted={fetchWebReviews}
+   />
 
    {/* CTA Section */}
    <section className="py-20 sm:py-28 bg-[#002b11]">
@@ -481,14 +568,14 @@ export default function HomePage() {
         whileHover={{ scale: 1.03 }}
         whileTap={{ scale: 0.97 }}
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="px-8 py-3.5 rounded-full bg-white  text-[#002b11] font-bold transition-all duration-200 shadow-lg text-sm">
+        className="px-8 cursor-pointer py-3.5 rounded-full bg-white  text-[#002b11] font-bold transition-all duration-200 shadow-lg text-sm">
         Reserve a Table
        </motion.button>
        <motion.button
         whileHover={{ scale: 1.03 }}
         whileTap={{ scale: 0.97 }}
         onClick={() => navigate("/signup")}
-        className="px-8 py-3.5 rounded-full bg-[#00bd49]  text-white font-bold transition-all duration-200 shadow-lg text-sm">
+        className="px-8 cursor-pointer py-3.5 rounded-full bg-[#00bd49]  text-white font-bold transition-all duration-200 shadow-lg text-sm">
         Create Account
        </motion.button>
       </div>
@@ -501,11 +588,10 @@ export default function HomePage() {
     <div className="max-w-7xl mx-auto px-6 lg:px-8">
      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
       <div className="flex items-center gap-2.5">
-       <div className="w-8 h-8 rounded-full bg-[#002b11] flex items-center justify-center">
-        <span className="text-white font-bold text-xs">LT</span>
-       </div>
+       <img src="/logo/logo.svg" alt="logo bookkaru" className="h-8 w-8" />
+
        <span className="text-lg font-bold tracking-tight text-[#002b11]">
-        LuxeTable
+        ReserveKaru
        </span>
       </div>
       <div className="flex items-center gap-8">

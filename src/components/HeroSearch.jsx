@@ -172,7 +172,7 @@ export default function HeroSearch({ onSearch, restaurants = [] }) {
  };
 
  return (
-  <section className="relative bg-white pt-28 pb-16 sm:pb-20">
+  <section className="relative bg-white pt-28 pb-14 sm:pb-6">
    {/* Content */}
    <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
     {/* Heading */}
