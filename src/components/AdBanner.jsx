@@ -1,9 +1,22 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabase";
+import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
 import { Megaphone } from "lucide-react";
 
+// Generate or retrieve a persistent anonymous ID for non-logged-in users
+const getAnonId = () => {
+ const key = "rk_anon_id";
+ let id = localStorage.getItem(key);
+ if (!id) {
+  id = "anon_" + crypto.randomUUID();
+  localStorage.setItem(key, id);
+ }
+ return id;
+};
+
 const AdBanner = () => {
+ const { user } = useAuth();
  const [banner, setBanner] = useState(null);
  const impressionTracked = useRef(false);
 
@@ -24,10 +37,21 @@ const AdBanner = () => {
   fetchBanner();
  }, []);
 
- // Track impression once banner is visible
+ // Track impression — once per user per banner (localStorage dedup)
  useEffect(() => {
   if (!banner || impressionTracked.current) return;
   impressionTracked.current = true;
+
+  const viewerId = user ? `user_${user.id}` : getAnonId();
+  const storageKey = `rk_banner_seen_${banner.id}`;
+
+  // Check if this viewer already counted
+  const seenBy = JSON.parse(localStorage.getItem(storageKey) || "[]");
+  if (seenBy.includes(viewerId)) return;
+
+  // Mark as seen and increment
+  seenBy.push(viewerId);
+  localStorage.setItem(storageKey, JSON.stringify(seenBy));
 
   const trackImpression = async () => {
    await supabase
@@ -36,7 +60,7 @@ const AdBanner = () => {
     .eq("id", banner.id);
   };
   trackImpression();
- }, [banner]);
+ }, [banner, user]);
 
  const handleClick = async () => {
   if (!banner) return;

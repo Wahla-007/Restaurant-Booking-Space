@@ -208,13 +208,13 @@ export default function BusinessPage() {
       {/* Logo */}
       <button
        onClick={() => navigate("/")}
-       className="flex items-center gap-2.5 cursor-pointer">
-       <img src="/logo/logo.svg" alt="ReserveKaru" className="w-8 h-8" />
-       <div className="flex flex-col leading-tight">
-        <span className="text-[18px] font-[900] tracking-tight text-[#002b11]">
+       className="flex items-start gap-2.5 cursor-pointer pt-2">
+       <img src="/logo/logo.svg" alt="ReserveKaru Logo" className="w-10 h-8" />
+       <div className="flex flex-col leading-tight ">
+        <span className="text-[26px] font-[900] tracking-tight text-[#002b11]">
          ReserveKaru
         </span>
-        <span className="text-[11px] font-semibold text-[#00aa6c] -mt-0.5 tracking-wide">
+        <span className="text-[16px] font-[500] text-[#002b11] text-right -mt-1 tracking-wide">
          for Business
         </span>
        </div>
