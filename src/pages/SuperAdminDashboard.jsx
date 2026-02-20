@@ -236,6 +236,35 @@ export default function SuperAdminDashboard() {
  // Delete user
  const handleDeleteUser = async (userId) => {
   try {
+   // First, get all restaurants owned by this user
+   const { data: ownedRestaurants } = await supabase
+    .from("restaurants")
+    .select("id")
+    .eq("owner_id", userId);
+
+   const restaurantIds = (ownedRestaurants || []).map((r) => r.id);
+
+   // Delete bookings for those restaurants
+   if (restaurantIds.length > 0) {
+    await supabase.from("bookings").delete().in("restaurant_id", restaurantIds);
+
+    // Delete reviews for those restaurants
+    await supabase.from("reviews").delete().in("restaurant_id", restaurantIds);
+
+    // Delete the restaurants themselves
+    await supabase.from("restaurants").delete().eq("owner_id", userId);
+   }
+
+   // Delete user's own bookings (as a customer)
+   await supabase.from("bookings").delete().eq("user_id", userId);
+
+   // Delete user's reviews
+   await supabase.from("reviews").delete().eq("user_id", userId);
+
+   // Delete user's web reviews
+   await supabase.from("web_reviews").delete().eq("user_id", userId);
+
+   // Finally delete the user
    const { error } = await supabase.from("users").delete().eq("id", userId);
 
    if (error) throw error;

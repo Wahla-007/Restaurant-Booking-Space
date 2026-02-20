@@ -21,7 +21,12 @@ const categories = [
  { key: "nearby", label: "Near Me", icon: MapPin },
 ];
 
-export default function HeroSearch({ onSearch, restaurants = [] }) {
+export default function HeroSearch({
+ onSearch,
+ restaurants = [],
+ userCity = "",
+ onTabChange,
+}) {
  const navigate = useNavigate();
  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
  const [time, setTime] = useState("19:00");
@@ -66,8 +71,10 @@ export default function HeroSearch({ onSearch, restaurants = [] }) {
    placeholder: "Search all restaurants...",
   },
   nearby: {
-   label: "Restaurants Near You",
-   placeholder: "Search nearby restaurants...",
+   label: userCity ? `Restaurants in ${userCity}` : "Restaurants Near You",
+   placeholder: userCity
+    ? `Search restaurants in ${userCity}...`
+    : "Search nearby restaurants...",
   },
  };
 
@@ -95,7 +102,12 @@ export default function HeroSearch({ onSearch, restaurants = [] }) {
     pool.sort((a, b) => a.name.localeCompare(b.name));
     break;
    case "nearby":
-    // Future: location-based. For now show all.
+    // Filter by user's detected city
+    if (userCity) {
+     pool = pool.filter(
+      (r) => r.city?.toLowerCase() === userCity.toLowerCase(),
+     );
+    }
     break;
    case "all":
    default:
@@ -115,7 +127,7 @@ export default function HeroSearch({ onSearch, restaurants = [] }) {
   }
 
   return pool.slice(0, 12);
- }, [query, restaurants, activeTab]);
+ }, [query, restaurants, activeTab, userCity]);
 
  const showDropdown = isFocused && dropdownResults.length > 0;
 
@@ -198,6 +210,7 @@ export default function HeroSearch({ onSearch, restaurants = [] }) {
         key={cat.key}
         onClick={() => {
          setActiveTab(cat.key);
+         onTabChange?.(cat.key);
          setIsFocused(true);
          inputRef.current?.focus();
         }}

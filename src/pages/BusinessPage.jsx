@@ -182,6 +182,10 @@ export default function BusinessPage() {
  const [scrolled, setScrolled] = useState(false);
 
  useEffect(() => {
+  window.scrollTo(0, 0);
+ }, []);
+
+ useEffect(() => {
   const handleScroll = () => setScrolled(window.scrollY > 10);
   window.addEventListener("scroll", handleScroll);
   return () => window.removeEventListener("scroll", handleScroll);

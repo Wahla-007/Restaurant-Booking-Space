@@ -17,6 +17,18 @@ export default function AppDownloadPopup() {
   return () => clearTimeout(timer);
  }, []);
 
+ // Lock body scroll when popup is open
+ useEffect(() => {
+  if (isOpen) {
+   document.body.style.overflow = "hidden";
+  } else {
+   document.body.style.overflow = "";
+  }
+  return () => {
+   document.body.style.overflow = "";
+  };
+ }, [isOpen]);
+
  const handleClose = () => {
   setIsOpen(false);
   sessionStorage.setItem("app-popup-dismissed", "true");
@@ -42,17 +54,17 @@ export default function AppDownloadPopup() {
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9, y: 20 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      <div className="relative w-full max-w-[860px] bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row">
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4">
+      <div className="relative w-full max-w-[860px] max-h-[95vh] sm:max-h-[90vh] bg-white rounded-2xl sm:rounded-3xl overflow-y-auto shadow-2xl flex flex-col md:flex-row">
        {/* Close Button */}
        <button
         onClick={handleClose}
-        className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-md transition-colors cursor-pointer">
-        <X size={18} className="text-[#002b11]" />
+        className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-md transition-colors cursor-pointer">
+        <X size={16} className="text-[#002b11] sm:w-[18px] sm:h-[18px]" />
        </button>
 
        {/* Left Side — Green Visual */}
-       <div className="relative w-full md:w-[48%] bg-[#7cfc00] overflow-hidden p-8 md:p-10 flex flex-col items-center justify-center min-h-[280px] md:min-h-[440px]">
+       <div className="relative w-full md:w-[48%] bg-[#7cfc00] overflow-hidden p-5 sm:p-8 md:p-10 flex flex-col items-center justify-center min-h-[200px] sm:min-h-[280px] md:min-h-[440px]">
         {/* Decorative floating elements */}
         <div className="absolute inset-0 overflow-hidden">
          {/* Wavy border decorations */}
@@ -115,8 +127,8 @@ export default function AppDownloadPopup() {
         </div>
 
         {/* Phone Mockup */}
-        <div className="relative z-[1]">
-         <div className="w-[200px] md:w-[220px] bg-[#1a1a2e] rounded-[32px] p-2 shadow-2xl border-[3px] border-[#002b11]/20">
+        <div className="relative z-[1] hidden sm:block">
+         <div className="w-[180px] sm:w-[200px] md:w-[220px] bg-[#1a1a2e] rounded-[32px] p-2 shadow-2xl border-[3px] border-[#002b11]/20">
           {/* Notch */}
           <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-[#1a1a2e] rounded-b-2xl z-10" />
           {/* Screen */}
@@ -207,19 +219,88 @@ export default function AppDownloadPopup() {
          </div>
         </div>
 
+        {/* Mobile-only app icon */}
+        <div className="relative z-[1] flex sm:hidden items-center justify-center">
+         <div className="w-16 h-16 rounded-2xl bg-[#002b11] shadow-xl flex items-center justify-center">
+          <Smartphone size={28} className="text-[#7cfc00]" />
+         </div>
+        </div>
+
         {/* QR Code section */}
-        <div className="mt-5 flex items-center gap-3 bg-white/90 rounded-xl px-3 py-2.5 shadow-md z-[1]">
-         <div className="w-12 h-12 bg-[#002b11] rounded-lg flex items-center justify-center">
-          <div className="grid grid-cols-3 gap-[2px]">
-           {[...Array(9)].map((_, i) => (
-            <div
-             key={i}
-             className={`w-[5px] h-[5px] rounded-[1px] ${
-              [0, 2, 3, 5, 6, 8].includes(i) ? "bg-white" : "bg-white/30"
-             }`}
-            />
-           ))}
-          </div>
+        <div className="mt-3 sm:mt-5 flex items-center gap-3 bg-white/90 rounded-xl px-3 py-2 sm:py-2.5 shadow-md z-[1]">
+         <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1">
+          {/* Dummy QR Code */}
+          <svg
+           viewBox="0 0 29 29"
+           className="w-full h-full"
+           shapeRendering="crispEdges">
+           {/* Top-left finder pattern */}
+           <rect x="0" y="0" width="7" height="7" fill="#002b11" />
+           <rect x="1" y="1" width="5" height="5" fill="white" />
+           <rect x="2" y="2" width="3" height="3" fill="#002b11" />
+           {/* Top-right finder pattern */}
+           <rect x="22" y="0" width="7" height="7" fill="#002b11" />
+           <rect x="23" y="1" width="5" height="5" fill="white" />
+           <rect x="24" y="2" width="3" height="3" fill="#002b11" />
+           {/* Bottom-left finder pattern */}
+           <rect x="0" y="22" width="7" height="7" fill="#002b11" />
+           <rect x="1" y="23" width="5" height="5" fill="white" />
+           <rect x="2" y="24" width="3" height="3" fill="#002b11" />
+           {/* Timing patterns */}
+           <rect x="8" y="6" width="1" height="1" fill="#002b11" />
+           <rect x="10" y="6" width="1" height="1" fill="#002b11" />
+           <rect x="12" y="6" width="1" height="1" fill="#002b11" />
+           <rect x="6" y="8" width="1" height="1" fill="#002b11" />
+           <rect x="6" y="10" width="1" height="1" fill="#002b11" />
+           <rect x="6" y="12" width="1" height="1" fill="#002b11" />
+           {/* Dummy data modules */}
+           <rect x="8" y="8" width="1" height="1" fill="#002b11" />
+           <rect x="9" y="9" width="1" height="1" fill="#002b11" />
+           <rect x="10" y="8" width="1" height="1" fill="#002b11" />
+           <rect x="11" y="10" width="1" height="1" fill="#002b11" />
+           <rect x="12" y="9" width="1" height="1" fill="#002b11" />
+           <rect x="13" y="8" width="1" height="1" fill="#002b11" />
+           <rect x="14" y="10" width="1" height="1" fill="#002b11" />
+           <rect x="15" y="9" width="1" height="1" fill="#002b11" />
+           <rect x="16" y="8" width="1" height="1" fill="#002b11" />
+           <rect x="8" y="11" width="1" height="1" fill="#002b11" />
+           <rect x="10" y="12" width="1" height="1" fill="#002b11" />
+           <rect x="12" y="11" width="1" height="1" fill="#002b11" />
+           <rect x="14" y="12" width="1" height="1" fill="#002b11" />
+           <rect x="9" y="13" width="1" height="1" fill="#002b11" />
+           <rect x="11" y="14" width="1" height="1" fill="#002b11" />
+           <rect x="13" y="13" width="1" height="1" fill="#002b11" />
+           <rect x="15" y="14" width="1" height="1" fill="#002b11" />
+           <rect x="17" y="9" width="1" height="1" fill="#002b11" />
+           <rect x="18" y="11" width="1" height="1" fill="#002b11" />
+           <rect x="19" y="10" width="1" height="1" fill="#002b11" />
+           <rect x="20" y="12" width="1" height="1" fill="#002b11" />
+           <rect x="8" y="15" width="1" height="1" fill="#002b11" />
+           <rect x="10" y="16" width="1" height="1" fill="#002b11" />
+           <rect x="9" y="17" width="1" height="1" fill="#002b11" />
+           <rect x="11" y="18" width="1" height="1" fill="#002b11" />
+           <rect x="13" y="16" width="1" height="1" fill="#002b11" />
+           <rect x="15" y="17" width="1" height="1" fill="#002b11" />
+           <rect x="17" y="15" width="1" height="1" fill="#002b11" />
+           <rect x="19" y="16" width="1" height="1" fill="#002b11" />
+           <rect x="20" y="18" width="1" height="1" fill="#002b11" />
+           <rect x="18" y="19" width="1" height="1" fill="#002b11" />
+           <rect x="16" y="20" width="1" height="1" fill="#002b11" />
+           <rect x="8" y="20" width="1" height="1" fill="#002b11" />
+           <rect x="10" y="22" width="1" height="1" fill="#002b11" />
+           <rect x="12" y="23" width="1" height="1" fill="#002b11" />
+           <rect x="14" y="22" width="1" height="1" fill="#002b11" />
+           <rect x="16" y="24" width="1" height="1" fill="#002b11" />
+           <rect x="18" y="22" width="1" height="1" fill="#002b11" />
+           <rect x="20" y="23" width="1" height="1" fill="#002b11" />
+           <rect x="22" y="20" width="1" height="1" fill="#002b11" />
+           <rect x="24" y="19" width="1" height="1" fill="#002b11" />
+           <rect x="23" y="21" width="1" height="1" fill="#002b11" />
+           <rect x="25" y="22" width="1" height="1" fill="#002b11" />
+           <rect x="22" y="24" width="1" height="1" fill="#002b11" />
+           <rect x="24" y="25" width="1" height="1" fill="#002b11" />
+           <rect x="26" y="23" width="1" height="1" fill="#002b11" />
+          </svg>
          </div>
          <div>
           <p className="text-[10px] font-bold text-[#002b11]">
@@ -231,18 +312,18 @@ export default function AppDownloadPopup() {
        </div>
 
        {/* Right Side — Content */}
-       <div className="w-full md:w-[52%] p-8 md:p-12 flex flex-col justify-center">
+       <div className="w-full md:w-[52%] p-5 sm:p-8 md:p-12 flex flex-col justify-center">
         <motion.div
          initial={{ opacity: 0, x: 20 }}
          animate={{ opacity: 1, x: 0 }}
          transition={{ delay: 0.15, duration: 0.4 }}>
-         <h2 className="text-3xl md:text-[38px] font-extrabold text-[#002b11] leading-tight tracking-tight mb-6">
+         <h2 className="text-2xl sm:text-3xl md:text-[38px] font-extrabold text-[#002b11] leading-tight tracking-tight mb-4 sm:mb-6">
           Get the app,
           <br />
           dine smarter
          </h2>
 
-         <div className="space-y-4 mb-8">
+         <div className="space-y-2.5 sm:space-y-4 mb-5 sm:mb-8">
           {[
            "Download ReserveKaru for free",
            "Get 10% off your first reservation",
@@ -251,7 +332,7 @@ export default function AppDownloadPopup() {
           ].map((item, i) => (
            <div key={i} className="flex items-start gap-3">
             <span className="text-[#002b11] text-lg mt-0.5">✓</span>
-            <p className="text-[15px] text-[#002b11]/80 font-medium leading-snug">
+            <p className="text-[13px] sm:text-[15px] text-[#002b11]/80 font-medium leading-snug">
              {item}
             </p>
            </div>
@@ -262,7 +343,7 @@ export default function AppDownloadPopup() {
           <motion.button
            whileHover={{ scale: 1.03 }}
            whileTap={{ scale: 0.97 }}
-           className="px-8 py-3.5 rounded-full bg-[#002b11] text-white font-bold text-sm shadow-lg hover:bg-[#004d1f] transition-colors cursor-pointer">
+           className="px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-[#002b11] text-white font-bold text-sm shadow-lg hover:bg-[#004d1f] transition-colors cursor-pointer">
            Download Now
           </motion.button>
 
@@ -270,13 +351,13 @@ export default function AppDownloadPopup() {
            whileHover={{ scale: 1.03 }}
            whileTap={{ scale: 0.97 }}
            onClick={handleClose}
-           className="px-8 py-3.5 rounded-full bg-transparent border-2 border-[#002b11]/15 text-[#002b11]/70 font-bold text-sm hover:border-[#002b11]/30 hover:text-[#002b11] transition-all cursor-pointer">
+           className="px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-transparent border-2 border-[#002b11]/15 text-[#002b11]/70 font-bold text-sm hover:border-[#002b11]/30 hover:text-[#002b11] transition-all cursor-pointer">
            Maybe Later
           </motion.button>
          </div>
 
          {/* App store badges */}
-         <div className="flex items-center gap-4 mt-8">
+         <div className="flex items-center max-md:justify-center gap-3 sm:gap-4 mt-5 sm:mt-8">
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black text-white cursor-pointer hover:bg-gray-800 transition-colors">
            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
             <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />

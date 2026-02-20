@@ -111,14 +111,14 @@ export default function Navbar() {
       ) : (
        <>
         <button
-         className="px-4 py-2 text-sm font-semibold text-[#002b11]/70 hover:text-[#002b11] hover:bg-gray-50 rounded-full transition-all duration-200"
+         className="px-4 cursor-pointer py-2 text-sm font-semibold text-[#002b11]/70 hover:text-[#002b11] hover:bg-gray-50 rounded-full transition-all duration-200"
          onClick={() => navigate("/signup")}>
          Sign up
         </button>
         <motion.button
          whileHover={{ scale: 1.02 }}
          whileTap={{ scale: 0.98 }}
-         className="px-5 py-2.5 text-sm font-bold text-white bg-[#002b11] hover:bg-[#004d1f] rounded-full transition-all duration-200 shadow-sm"
+         className="px-5 py-2.5 cursor-pointer text-sm font-bold text-white bg-[#002b11] hover:bg-[#004d1f] rounded-full transition-all duration-200 shadow-sm"
          onClick={() => navigate("/login")}>
          Sign in
         </motion.button>

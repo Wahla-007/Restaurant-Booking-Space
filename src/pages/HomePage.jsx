@@ -4,11 +4,11 @@ import WebReviewForm from "../components/WebReviewForm";
 import ReviewCarousel from "../components/ReviewCarousel";
 import { fuzzyMatch } from "../utils/searchUtils";
 import useDebounce from "../hooks/useDebounce";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import AppDownloadPopup from "../components/AppDownloadPopup";
 import AdBanner from "../components/AdBanner";
@@ -20,11 +20,14 @@ import {
  Leaf,
  ChefHat,
  ArrowRight,
+ ChevronLeft,
+ ChevronRight,
  Star,
  Shield,
  Zap,
  Heart,
  CircleCheck,
+ MapPin,
 } from "lucide-react";
 
 const cuisineCategories = [
@@ -36,6 +39,140 @@ const cuisineCategories = [
  { name: "OutDoor", icon: ChefHat },
 ];
 
+function FeaturedCarousel({ featuredRestaurants, userCity }) {
+ const scrollRef = useRef(null);
+ const [canScrollLeft, setCanScrollLeft] = useState(false);
+ const [canScrollRight, setCanScrollRight] = useState(false);
+ const showArrows = featuredRestaurants.length > 1;
+
+ const checkScroll = () => {
+  const el = scrollRef.current;
+  if (!el) return;
+  setCanScrollLeft(el.scrollLeft > 2);
+  setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+ };
+
+ useEffect(() => {
+  checkScroll();
+  const el = scrollRef.current;
+  if (el) el.addEventListener("scroll", checkScroll, { passive: true });
+  window.addEventListener("resize", checkScroll);
+  return () => {
+   if (el) el.removeEventListener("scroll", checkScroll);
+   window.removeEventListener("resize", checkScroll);
+  };
+ }, [featuredRestaurants]);
+
+ const scroll = (direction) => {
+  const el = scrollRef.current;
+  if (!el) return;
+  const cardWidth = el.querySelector(":scope > div")?.offsetWidth || 300;
+  const gap = 20;
+  const scrollAmount = (cardWidth + gap) * (direction === "left" ? -1 : 1);
+  el.scrollBy({ left: scrollAmount, behavior: "smooth" });
+ };
+
+ return (
+  <section className="py-10 sm:py-10">
+   <div className="max-w-7xl mx-auto px-6 lg:px-8">
+    <motion.div
+     initial={{ opacity: 0, y: 16 }}
+     whileInView={{ opacity: 1, y: 0 }}
+     viewport={{ once: true }}
+     transition={{ duration: 0.5 }}
+     className="flex items-end justify-between mb-8">
+     <div>
+      <span className="text-xs font-bold tracking-widest text-[#00aa6c] uppercase mb-1 block">
+       {userCity ? `Popular in ${userCity}` : "Handpicked for you"}
+      </span>
+      <h2 className="text-2xl sm:text-3xl font-extrabold text-[#002b11] tracking-tight">
+       Featured Restaurants
+      </h2>
+      {userCity && (
+       <div className="flex items-center gap-1.5 mt-1">
+        <MapPin size={13} className="text-[#00aa6c]" />
+        <p className="text-[#002b11]/40 text-xs font-medium">
+         Based on your location
+        </p>
+       </div>
+      )}
+     </div>
+     <div className="flex items-center gap-2">
+      {showArrows && (
+       <>
+        <button
+         onClick={() => scroll("left")}
+         disabled={!canScrollLeft}
+         className={`hidden sm:flex w-9 h-9 rounded-full border border-[#002b11]/10 items-center justify-center transition-all duration-200 cursor-pointer ${
+          canScrollLeft
+           ? "bg-white hover:bg-[#002b11] hover:text-white hover:border-[#002b11] text-[#002b11]"
+           : "bg-gray-50 text-[#002b11]/20 cursor-not-allowed"
+         }`}>
+         <ChevronLeft size={18} />
+        </button>
+        <button
+         onClick={() => scroll("right")}
+         disabled={!canScrollRight}
+         className={`hidden sm:flex w-9 h-9 rounded-full border border-[#002b11]/10 items-center justify-center transition-all duration-200 cursor-pointer ${
+          canScrollRight
+           ? "bg-white hover:bg-[#002b11] hover:text-white hover:border-[#002b11] text-[#002b11]"
+           : "bg-gray-50 text-[#002b11]/20 cursor-not-allowed"
+         }`}>
+         <ChevronRight size={18} />
+        </button>
+       </>
+      )}
+     </div>
+    </motion.div>
+
+    <div className="relative">
+     {/* Left fade gradient */}
+     {canScrollLeft && (
+      <div className="absolute left-0 top-0 bottom-0 w-8 sm:w-10 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
+     )}
+
+     {/* Mobile left arrow overlay */}
+     {showArrows && canScrollLeft && (
+      <button
+       onClick={() => scroll("left")}
+       className="sm:hidden absolute left-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/90 shadow-md border border-[#002b11]/10 flex items-center justify-center text-[#002b11] active:scale-90 transition-transform cursor-pointer">
+       <ChevronLeft size={16} />
+      </button>
+     )}
+
+     {/* Scrollable container */}
+     <div
+      ref={scrollRef}
+      className="flex gap-5 overflow-x-auto scrollbar-hide scroll-smooth"
+      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+      {featuredRestaurants.map((restaurant, index) => (
+       <div
+        key={restaurant.id}
+        className="min-w-[280px] sm:min-w-[300px] lg:min-w-[calc(25%-15px)] lg:max-w-[calc(25%-15px)] flex-shrink-0">
+        <RestaurantCard restaurant={restaurant} index={index} />
+       </div>
+      ))}
+     </div>
+
+     {/* Right fade gradient */}
+     {canScrollRight && (
+      <div className="absolute right-0 top-0 bottom-0 w-8 sm:w-10 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
+     )}
+
+     {/* Mobile right arrow overlay */}
+     {showArrows && canScrollRight && (
+      <button
+       onClick={() => scroll("right")}
+       className="sm:hidden absolute right-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/90 shadow-md border border-[#002b11]/10 flex items-center justify-center text-[#002b11] active:scale-90 transition-transform cursor-pointer">
+       <ChevronRight size={16} />
+      </button>
+     )}
+    </div>
+   </div>
+  </section>
+ );
+}
+
 export default function HomePage() {
  const { user } = useAuth();
  const { addToast } = useToast();
@@ -46,7 +183,48 @@ export default function HomePage() {
  const [searchQuery, setSearchQuery] = useState("");
  const [webReviews, setWebReviews] = useState([]);
  const [reviewFormOpen, setReviewFormOpen] = useState(false);
+ const [userCity, setUserCity] = useState("");
+ const [activeTab, setActiveTab] = useState("all");
  const debouncedQuery = useDebounce(searchQuery, 1000);
+
+ // Auto-detect user's city from geolocation
+ useEffect(() => {
+  const cachedCity = sessionStorage.getItem("user-city");
+  if (cachedCity) {
+   setUserCity(cachedCity);
+   return;
+  }
+
+  if (!navigator.geolocation) return;
+
+  navigator.geolocation.getCurrentPosition(
+   async (position) => {
+    try {
+     const { latitude, longitude } = position.coords;
+     const resp = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=en`,
+     );
+     const data = await resp.json();
+     const city =
+      data?.address?.city ||
+      data?.address?.town ||
+      data?.address?.village ||
+      data?.address?.county ||
+      "";
+     if (city) {
+      setUserCity(city);
+      sessionStorage.setItem("user-city", city);
+     }
+    } catch (err) {
+     console.error("Reverse geocoding failed:", err);
+    }
+   },
+   (err) => {
+    console.log("Geolocation denied or unavailable:", err.message);
+   },
+   { timeout: 8000, maximumAge: 300000 },
+  );
+ }, []);
 
  useEffect(() => {
   if (user && user.role === "admin") {
@@ -150,20 +328,27 @@ export default function HomePage() {
  }, []);
 
  useEffect(() => {
+  let pool = allRestaurants;
+
+  // Filter by city when Near Me tab is active
+  if (activeTab === "nearby" && userCity) {
+   pool = pool.filter((r) => r.city?.toLowerCase() === userCity.toLowerCase());
+  }
+
   if (!debouncedQuery) {
-   setFilteredRestaurants(allRestaurants);
+   setFilteredRestaurants(pool);
    return;
   }
 
   const q = debouncedQuery.toLowerCase();
-  const results = allRestaurants.filter(
+  const results = pool.filter(
    (r) =>
     fuzzyMatch(r.name, q) ||
     fuzzyMatch(r.cuisine, q) ||
     fuzzyMatch(r.location, q),
   );
   setFilteredRestaurants(results);
- }, [debouncedQuery, allRestaurants]);
+ }, [debouncedQuery, allRestaurants, activeTab, userCity]);
 
  const handleSearch = ({ query }) => {
   setSearchQuery(query || "");
@@ -173,7 +358,20 @@ export default function HomePage() {
   setSearchQuery(cuisineName);
  };
 
- const featuredRestaurants = allRestaurants.filter((r) => r.is_featured);
+ // Featured restaurants: filter by user city if detected
+ const featuredRestaurants = allRestaurants.filter((r) => {
+  if (!r.is_featured) return false;
+  if (userCity) {
+   return r.city?.toLowerCase() === userCity.toLowerCase();
+  }
+  return true;
+ });
+
+ // Fallback: if no featured in user's city, show all featured
+ const displayFeatured =
+  featuredRestaurants.length > 0
+   ? featuredRestaurants
+   : allRestaurants.filter((r) => r.is_featured);
 
  if (loading) {
   return (
@@ -197,7 +395,12 @@ export default function HomePage() {
    <AppDownloadPopup />
 
    {/* Hero Section */}
-   <HeroSearch onSearch={handleSearch} restaurants={allRestaurants} />
+   <HeroSearch
+    onSearch={handleSearch}
+    restaurants={allRestaurants}
+    userCity={userCity}
+    onTabChange={(tab) => setActiveTab(tab)}
+   />
 
    {/* Business CTA Banner */}
    <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
@@ -255,42 +458,11 @@ export default function HomePage() {
    </div>
 
    {/* Featured Restaurants */}
-   {featuredRestaurants.length > 0 && (
-    <section className="py-10 sm:py-10">
-     <div className="max-w-7xl mx-auto px-6 lg:px-8">
-      <motion.div
-       initial={{ opacity: 0, y: 16 }}
-       whileInView={{ opacity: 1, y: 0 }}
-       viewport={{ once: true }}
-       transition={{ duration: 0.5 }}
-       className="flex items-end justify-between mb-8">
-       <div>
-        <span className="text-xs font-bold tracking-widest text-[#00aa6c] uppercase mb-1 block">
-         Handpicked for you
-        </span>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#002b11] tracking-tight">
-         Featured Restaurants
-        </h2>
-       </div>
-       <motion.button
-        whileHover={{ x: 3 }}
-        className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-[#002b11]/60 hover:text-[#002b11] transition-colors">
-        View all
-        <ArrowRight size={15} />
-       </motion.button>
-      </motion.div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-       {featuredRestaurants.slice(0, 4).map((restaurant, index) => (
-        <RestaurantCard
-         key={restaurant.id}
-         restaurant={restaurant}
-         index={index}
-        />
-       ))}
-      </div>
-     </div>
-    </section>
+   {displayFeatured.length > 0 && (
+    <FeaturedCarousel
+     featuredRestaurants={displayFeatured}
+     userCity={userCity}
+    />
    )}
 
    {/* Cuisine Categories */}
@@ -353,13 +525,27 @@ export default function HomePage() {
       className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-8">
       <div>
        <span className="text-xs font-bold tracking-widest text-[#00aa6c] uppercase mb-1 block">
-        {debouncedQuery ? "Search Results" : "Tonight"}
+        {debouncedQuery
+         ? "Search Results"
+         : activeTab === "nearby" && userCity
+           ? "Near You"
+           : "Tonight"}
        </span>
        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#002b11] tracking-tight">
         {debouncedQuery
          ? `Results for "${debouncedQuery}"`
-         : "Available for Dinner Tonight"}
+         : activeTab === "nearby" && userCity
+           ? `Restaurants in ${userCity}`
+           : "Available for Dinner Tonight"}
        </h2>
+       {activeTab === "nearby" && userCity && (
+        <div className="flex items-center gap-1.5 mt-1.5">
+         <MapPin size={13} className="text-[#00aa6c]" />
+         <p className="text-[#00aa6c] text-sm font-medium">
+          Showing results near {userCity}
+         </p>
+        </div>
+       )}
        <p className="text-gray-400 mt-1 text-sm">
         {filteredRestaurants.length} restaurant
         {filteredRestaurants.length !== 1 ? "s" : ""} found
@@ -596,11 +782,11 @@ export default function HomePage() {
       </div>
       <div className="flex items-center gap-8">
        {["Privacy", "Terms", "Support", "Contact"].map((link) => (
-        <button
-         key={link}
-         className="text-xs text-gray-400 hover:text-[#002b11] transition-colors font-medium">
+        <Link
+         to={`/${link.toLowerCase()}`}
+         className="text-xs cursor-pointer text-gray-400 hover:text-[#002b11] transition-colors font-medium">
          {link}
-        </button>
+        </Link>
        ))}
       </div>
       <p className="text-xs text-[#002b11]">

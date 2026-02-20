@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Star } from "lucide-react";
+import { Star, UserRound } from "lucide-react";
 
 export default function ReviewCarousel({ reviews }) {
  const scrollRef = useRef(null);
@@ -81,19 +81,9 @@ export default function ReviewCarousel({ reviews }) {
 
      {/* Author */}
      <div className="border-t border-gray-50 pt-4 flex items-center gap-3">
-      {review.user_avatar ? (
-       <img
-        src={review.user_avatar}
-        alt={review.user_name}
-        className="w-8 h-8 rounded-full object-cover ring-2 ring-gray-100"
-       />
-      ) : (
-       <div className="w-8 h-8 rounded-full bg-[#002b11]/10 flex items-center justify-center">
-        <span className="text-xs font-bold text-[#002b11]">
-         {review.user_name?.charAt(0)?.toUpperCase() || "?"}
-        </span>
-       </div>
-      )}
+      <div className="w-8 h-8 rounded-full bg-[#002b11]/[0.07] flex items-center justify-center">
+       <UserRound size={16} className="text-[#002b11]/50" />
+      </div>
       <div>
        <p className="text-sm font-bold text-[#002b11]">{review.user_name}</p>
        <p className="text-[11px] text-gray-400">
