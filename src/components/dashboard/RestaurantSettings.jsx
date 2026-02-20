@@ -86,6 +86,20 @@ const RestaurantSettings = ({
         className="w-full px-4 py-3 bg-white text-slate-800 placeholder:text-slate-400 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
        />
       </div>
+      <div className="space-y-2">
+       <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+        <MapPin className="w-3.5 h-3.5" />
+        City
+       </label>
+       <input
+        type="text"
+        name="city"
+        value={restaurant.city || ""}
+        onChange={onChange}
+        placeholder="e.g. Lahore, Karachi, Islamabad"
+        className="w-full px-4 py-3 bg-white text-slate-800 placeholder:text-slate-400 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+       />
+      </div>
      </div>
 
      <div className="space-y-2">

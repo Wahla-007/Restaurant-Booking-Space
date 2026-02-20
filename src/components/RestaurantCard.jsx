@@ -1,12 +1,14 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { trackImpression } from "../utils/analytics";
+import { motion } from "framer-motion";
+import { Star, Heart, MapPin, Clock } from "lucide-react";
 
-export default function RestaurantCard({ restaurant }) {
+export default function RestaurantCard({ restaurant, index = 0 }) {
  const navigate = useNavigate();
  const cardRef = useRef(null);
+ const [liked, setLiked] = useState(false);
 
- // Track impression when card becomes visible
  useEffect(() => {
   const el = cardRef.current;
   if (!el || !restaurant?.id) return;
@@ -24,152 +26,140 @@ export default function RestaurantCard({ restaurant }) {
   return () => observer.disconnect();
  }, [restaurant?.id]);
 
+ const ratingNum = parseFloat(restaurant.rating);
+ const fullDots = !isNaN(ratingNum) ? Math.round(ratingNum) : 0;
+
  return (
-  <div
+  <motion.div
    ref={cardRef}
-   className="card glass"
-   style={{
-    borderRadius: "var(--radius)",
-    overflow: "hidden",
-    cursor: "pointer",
-    height: "100%",
-    display: "flex",
-    flexDirection: "column",
-    transition: "var(--transition)",
+   initial={{ opacity: 0, y: 24 }}
+   whileInView={{ opacity: 1, y: 0 }}
+   viewport={{ once: true, margin: "-40px" }}
+   transition={{
+    duration: 0.45,
+    delay: index * 0.06,
+    ease: [0.22, 1, 0.36, 1],
    }}
-   onClick={() => navigate(`/restaurant/${restaurant.id}`)}
-   onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
-   onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}>
-   <div style={{ height: "220px", overflow: "hidden", position: "relative" }}>
-    <img
-     src={restaurant.images[0]}
-     alt={restaurant.name}
-     style={{ width: "100%", height: "100%", objectFit: "cover" }}
-    />
-    {restaurant.is_featured && (
-     <div
-      style={{
-       position: "absolute",
-       top: "10px",
-       left: "10px",
-       background: "rgba(0, 0, 0, 0.65)",
-       backdropFilter: "blur(8px)",
-       WebkitBackdropFilter: "blur(8px)",
-       padding: "5px 12px",
-       borderRadius: "8px",
-       display: "flex",
-       alignItems: "center",
-       gap: "6px",
-       fontSize: "0.72rem",
-       fontWeight: 700,
-       color: "#fff",
-       boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3)",
-       letterSpacing: "0.6px",
-       textTransform: "uppercase",
-      }}>
-      <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
-       <path
-        d="M19.998 3.094L14.638 0l-2.972 5.15H5.432v6.354L0 14.64 3.094 20 0 25.359l5.432 3.137v6.354h6.234L14.638 40l5.36-3.094L25.358 40l2.972-5.15h6.234v-6.354L40 25.359 36.905 20 40 14.641l-5.436-3.137V5.15h-6.234L25.358 0l-5.36 3.094z"
-        fill="#1DA1F2"
-       />
-       <path
-        d="M17.204 27.822l-6.904-6.904 2.828-2.828 4.076 4.076 8.876-8.876 2.828 2.828-11.704 11.704z"
-        fill="#fff"
-       />
-      </svg>
-      Featured
-     </div>
-    )}
-    <div
-     style={{
-      position: "absolute",
-      top: "12px",
-      right: "12px",
-      background: "rgba(0,0,0,0.7)",
-      padding: "4px 8px",
-      borderRadius: "6px",
-      display: "flex",
-      alignItems: "center",
-      gap: "4px",
-      backdropFilter: "blur(4px)",
-      fontSize: "0.9rem",
-     }}>
-     <span style={{ color: "#fbbf24" }}>★</span>
-     <span style={{ fontWeight: 600 }}>{restaurant.rating}</span>
-     <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
-      ({restaurant.reviewCount})
-     </span>
-    </div>
-   </div>
+   className="group cursor-pointer"
+   onClick={() => navigate(`/restaurant/${restaurant.id}`)}>
+   <div className="h-full bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] transition-all duration-300">
+    {/* Image */}
+    <div className="relative h-56 overflow-hidden">
+     <img
+      src={restaurant.images[0]}
+      alt={restaurant.name}
+      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+     />
 
-   <div
-    style={{
-     padding: "1.25rem",
-     flex: 1,
-     display: "flex",
-     flexDirection: "column",
-    }}>
-    <h3
-     style={{
-      margin: "0 0 0.5rem 0",
-      fontSize: "1.2rem",
-      fontWeight: 600,
-      display: "flex",
-      alignItems: "center",
-      gap: "6px",
-      textTransform: "capitalize",
-     }}>
-     {restaurant.name}
+     {/* Wishlist Heart */}
+     <button
+      onClick={(e) => {
+       e.stopPropagation();
+       setLiked(!liked);
+      }}
+      className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white transition-colors">
+      <Heart
+       size={18}
+       className={`transition-colors ${liked ? "text-red-500 fill-red-500" : "text-[#002b11]/60"}`}
+      />
+     </button>
+
+     {/* Featured Badge */}
      {restaurant.is_featured && (
-      <svg
-       width="18"
-       height="18"
-       viewBox="0 0 40 40"
-       fill="none"
-       style={{ flexShrink: 0 }}>
-       <path
-        d="M19.998 3.094L14.638 0l-2.972 5.15H5.432v6.354L0 14.64 3.094 20 0 25.359l5.432 3.137v6.354h6.234L14.638 40l5.36-3.094L25.358 40l2.972-5.15h6.234v-6.354L40 25.359 36.905 20 40 14.641l-5.436-3.137V5.15h-6.234L25.358 0l-5.36 3.094z"
-        fill="#1DA1F2"
-       />
-       <path
-        d="M17.204 27.822l-6.904-6.904 2.828-2.828 4.076 4.076 8.876-8.876 2.828 2.828-11.704 11.704z"
-        fill="#fff"
-       />
-      </svg>
+      <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#002b11] shadow-md">
+       <svg width="13" height="13" viewBox="0 0 40 40" fill="none">
+        <path
+         d="M19.998 3.094L14.638 0l-2.972 5.15H5.432v6.354L0 14.64 3.094 20 0 25.359l5.432 3.137v6.354h6.234L14.638 40l5.36-3.094L25.358 40l2.972-5.15h6.234v-6.354L40 25.359 36.905 20 40 14.641l-5.436-3.137V5.15h-6.234L25.358 0l-5.36 3.094z"
+         fill="#fff"
+        />
+        <path
+         d="M17.204 27.822l-6.904-6.904 2.828-2.828 4.076 4.076 8.876-8.876 2.828 2.828-11.704 11.704z"
+         fill="#002b11"
+        />
+       </svg>
+       <span className="text-[11px] font-bold text-white tracking-wider uppercase">
+        Featured
+       </span>
+      </div>
      )}
-    </h3>
-
-    <div
-     style={{
-      display: "flex",
-      gap: "1rem",
-      marginBottom: "0.75rem",
-      fontSize: "0.9rem",
-      color: "var(--text-muted)",
-     }}>
-     <span>{restaurant.cuisine}</span>
-     <span>•</span>
-     <span>{restaurant.price}</span>
-     <span>•</span>
-     <span>{restaurant.location}</span>
     </div>
 
-    <div style={{ display: "flex", gap: "0.5rem", marginTop: "auto" }}>
-     {["17:00", "17:30", "18:00"].map((time) => (
-      <button
-       key={time}
-       className="btn-secondary"
-       style={{
-        padding: "0.4rem 0.8rem",
-        fontSize: "0.85rem",
-        flex: 1,
-        borderRadius: "6px",
-       }}>
-       {time}
-      </button>
-     ))}
+    {/* Content */}
+    <div className="p-4">
+     {/* Location Tag */}
+     {restaurant.location && (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#f0f0f0] text-[11px] font-semibold text-[#002b11]/70 mb-2 w-full">
+       <MapPin size={10} className="shrink-0" />
+       <span className="truncate">{restaurant.location}</span>
+      </span>
+     )}
+
+     {/* Name */}
+     <h3 className="text-[15px] font-bold text-[#002b11] leading-snug mb-1.5 group-hover:text-[#004d1f] transition-colors">
+      {restaurant.name}
+     </h3>
+
+     {/* Rating Row - TripAdvisor bubble style */}
+     <div className="flex items-center gap-1.5 mb-1.5">
+      {restaurant.rating && restaurant.rating !== "New" && (
+       <>
+        <span className="text-[13px] font-bold text-[#002b11]">
+         {restaurant.rating}
+        </span>
+        <div className="flex items-center gap-[2px]">
+         {[...Array(5)].map((_, i) => (
+          <span
+           key={i}
+           className={`w-[14px] h-[14px] rounded-full ${
+            i < fullDots ? "bg-[#00aa6c]" : "bg-[#00aa6c]/20"
+           }`}
+          />
+         ))}
+        </div>
+        <span className="text-[12px] text-gray-400">
+         ({restaurant.reviewCount.toLocaleString()}) reviews
+        </span>
+       </>
+      )}
+      {restaurant.rating === "New" && (
+       <>
+        <span className="text-[11px] font-semibold text-[#00aa6c] bg-[#00aa6c]/10 px-2 py-0.5 rounded-full">
+         New
+        </span>
+        <span className="text-[12px] text-gray-400">
+         ({restaurant.reviewCount || 0}) reviews
+        </span>
+       </>
+      )}
+     </div>
+
+     {/* Cuisine & City */}
+     <div className="flex items-center text-[13px] text-gray-500 mb-3">
+      <span className="font-medium text-[#002b11]/60">
+       {restaurant.cuisine}
+       {restaurant.city ? ` | ${restaurant.city}` : ""}
+      </span>
+     </div>
+
+     {/* Time Slots */}
+     <div className="flex items-center gap-1.5 pt-3 border-t border-gray-100">
+      <Clock size={12} className="text-gray-300 shrink-0" />
+      <div className="flex gap-1.5 flex-1">
+       {["17:00", "17:30", "18:00"].map((t) => (
+        <button
+         key={t}
+         onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/restaurant/${restaurant.id}`);
+         }}
+         className="flex-1 py-1.5 text-[11px] font-semibold text-[#002b11] bg-[#002b11]/[0.04] hover:bg-[#002b11]/[0.08] border border-[#002b11]/10 hover:border-[#002b11]/20 rounded-lg transition-all duration-200">
+         {t}
+        </button>
+       ))}
+      </div>
+     </div>
     </div>
    </div>
-  </div>
+  </motion.div>
  );
 }

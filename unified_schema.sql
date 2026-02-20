@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS public.restaurants (
   owner_id bigint references public.users(id), -- Matches users.id (BigInt)
   name text not null,
   cuisine text,
+  city text,
   price text,
   location text,
   description text,

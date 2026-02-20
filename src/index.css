@@ -1,20 +1,24 @@
 @import "tailwindcss";
 
 :root {
- --bg-app: #0f172a;
- --bg-card: #1e293b;
- --primary: #8b5cf6;
- --primary-hover: #7c3aed;
- --secondary: #f472b6;
- --text-main: #f8fafc;
- --text-muted: #94a3b8;
- --glass-bg: rgba(30, 41, 59, 0.7);
- --glass-border: rgba(148, 163, 184, 0.1);
- --shadow-lg:
-  0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
- --radius: 12px;
- --font-family: "Inter", system-ui, -apple-system, sans-serif;
- --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+ --bg-app: #ffffff;
+ --bg-card: #ffffff;
+ --primary: #002b11;
+ --primary-hover: #004d1f;
+ --secondary: #00aa6c;
+ --accent: #00aa6c;
+ --text-main: #1a1a1a;
+ --text-muted: #717171;
+ --border-color: #e0e0e0;
+ --bg-subtle: #f7f7f7;
+ --radius: 100px;
+ --radius-card: 16px;
+ --font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+ --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html {
+ scroll-behavior: smooth;
 }
 
 body {
@@ -23,6 +27,7 @@ body {
  background-color: var(--bg-app);
  color: var(--text-main);
  -webkit-font-smoothing: antialiased;
+ -moz-osx-font-smoothing: grayscale;
  min-height: 100vh;
 }
 
@@ -38,18 +43,15 @@ body {
 }
 
 .glass {
- background: var(--glass-bg);
- backdrop-filter: blur(12px);
- -webkit-backdrop-filter: blur(12px);
- border: 1px solid var(--glass-border);
- box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+ background: rgba(255, 255, 255, 0.85);
+ backdrop-filter: blur(16px);
+ -webkit-backdrop-filter: blur(16px);
+ border: 1px solid var(--border-color);
+ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .title-gradient {
- background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
- -webkit-background-clip: text;
- -webkit-text-fill-color: transparent;
- background-clip: text;
+ color: var(--primary);
 }
 
 .btn {
@@ -63,41 +65,39 @@ body {
 }
 
 .btn-primary {
- background: linear-gradient(
-  135deg,
-  var(--primary) 0%,
-  var(--primary-hover) 100%
- );
+ background: var(--primary);
  color: white;
- box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3);
+ box-shadow: 0 2px 8px rgba(0, 43, 17, 0.15);
 }
 
 .btn-primary:hover {
- transform: translateY(-2px);
- box-shadow: 0 6px 15px rgba(139, 92, 246, 0.5);
+ background: var(--primary-hover);
+ transform: translateY(-1px);
+ box-shadow: 0 4px 12px rgba(0, 43, 17, 0.2);
 }
 
 .btn-secondary {
  background: transparent;
- border: 1px solid var(--primary);
+ border: 1px solid var(--border-color);
  color: var(--primary);
 }
 
 .btn-secondary:hover {
- background: rgba(139, 92, 246, 0.1);
+ background: var(--bg-subtle);
+ border-color: var(--primary);
 }
 
-/* Input Styling — in @layer base so Tailwind utilities can override */
+/* Input Styling */
 @layer base {
  input,
  select,
  textarea {
   width: 100%;
   padding: 0.75rem;
-  border-radius: var(--radius);
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid var(--glass-border);
-  color: white;
+  border-radius: 12px;
+  background: white;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
   font-size: 1rem;
   transition: var(--transition);
  }
@@ -107,8 +107,26 @@ body {
  textarea:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+  box-shadow: 0 0 0 2px rgba(0, 43, 17, 0.1);
  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+ width: 6px;
+}
+
+::-webkit-scrollbar-track {
+ background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+ background: #d1d5db;
+ border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+ background: #9ca3af;
 }
 
 /* Animations */
@@ -137,16 +155,22 @@ aside nav::-webkit-scrollbar-track {
 }
 
 aside nav::-webkit-scrollbar-thumb {
- background: #cbd5e1;
+ background: #d1d5db;
  border-radius: 9999px;
  max-height: 100px;
 }
 
 aside nav::-webkit-scrollbar-thumb:hover {
- background: #94a3b8;
+ background: #9ca3af;
 }
 
 aside nav {
  scrollbar-width: thin;
- scrollbar-color: #cbd5e1 transparent;
+ scrollbar-color: #d1d5db transparent;
+}
+
+/* Selection */
+::selection {
+ background: rgba(0, 43, 17, 0.15);
+ color: var(--primary);
 }

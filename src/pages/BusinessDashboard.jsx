@@ -52,6 +52,7 @@ export default function BusinessDashboard() {
  const [formData, setFormData] = useState({
   name: "",
   cuisine: "",
+  city: "",
   price: "$$",
   location: "",
   location_link: "",
@@ -194,6 +195,7 @@ export default function BusinessDashboard() {
     setFormData({
      name: data.name || "",
      cuisine: data.cuisine || "",
+     city: data.city || "",
      price: data.price || "$$",
      location: data.location || "",
      location_link: data.location_link || "",
@@ -339,6 +341,7 @@ export default function BusinessDashboard() {
     // ... include all text fields
     name: formData.name,
     cuisine: formData.cuisine,
+    city: formData.city,
     price: formData.price,
     location: formData.location,
     location_link: formData.location_link,
