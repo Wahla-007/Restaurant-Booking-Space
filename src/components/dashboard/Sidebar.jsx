@@ -10,6 +10,7 @@ import {
  Headset,
  MessageSquareText,
  BarChart3,
+ CreditCard,
  Volume2,
  VolumeOff,
 } from "lucide-react";
@@ -90,6 +91,12 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, restaurantName }) => {
      label="Settings"
      active={activeTab === "Settings"}
      onClick={() => setActiveTab("Settings")}
+    />
+    <SidebarItem
+     icon={CreditCard}
+     label="Billing"
+     active={activeTab === "Billing"}
+     onClick={() => setActiveTab("Billing")}
     />
     <SidebarItem
      icon={Headset}

@@ -98,11 +98,11 @@ export default function Login() {
 
      {/* Forgot Password */}
      <div>
-      <button
-       type="button"
+      <Link
+       to="/forgot-password"
        className="text-[#002b11] text-[15px] font-semibold underline underline-offset-2 hover:text-[#00aa6c] transition-colors cursor-pointer">
        Forgot password?
-      </button>
+      </Link>
      </div>
 
      {/* Error */}

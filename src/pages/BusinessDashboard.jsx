@@ -15,6 +15,7 @@ import LeadsTable from "../components/dashboard/LeadsTable";
 import CustomerSupport from "../components/dashboard/CustomerSupport";
 import ReviewsManagement from "../components/dashboard/ReviewsManagement";
 import TrafficAnalytics from "../components/dashboard/TrafficAnalytics";
+import BillingTab from "../components/dashboard/BillingTab";
 import DashboardChart from "../components/dashboard/DashboardChart";
 import {
  Users,
@@ -590,6 +591,14 @@ export default function BusinessDashboard() {
       onChange={handleInputChange}
       onSave={handleSaveSettings}
       onImageChange={handleImageChange}
+     />
+    );
+   case "Billing":
+    return (
+     <BillingTab
+      restaurantId={restaurant?.id}
+      restaurantName={restaurant?.name}
+      userId={user?.id}
      />
     );
    case "Support":

@@ -8,6 +8,7 @@ import {
  MessageSquareHeart,
  Headset,
  Megaphone,
+ Banknote,
  LogOut,
  ShieldCheck,
  Volume2,
@@ -89,6 +90,12 @@ const AdminSidebar = ({ activeTab, setActiveTab, onLogout }) => {
      label="Banner Ads"
      active={activeTab === "Banner Ads"}
      onClick={() => setActiveTab("Banner Ads")}
+    />
+    <SidebarItem
+     icon={Banknote}
+     label="Payments"
+     active={activeTab === "Payments"}
+     onClick={() => setActiveTab("Payments")}
     />
     <SidebarItem
      icon={Headset}

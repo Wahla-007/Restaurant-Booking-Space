@@ -8,6 +8,7 @@ import Signup from "./pages/Signup";
 import BusinessDashboard from "./pages/BusinessDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import BusinessPage from "./pages/BusinessPage";
+import ForgotPassword from "./pages/ForgotPassword";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import PageLoader from "./components/ui/PageLoader";
@@ -39,6 +40,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/business-dashboard" element={<BusinessDashboard />} />
       <Route path="/super-admin" element={<SuperAdminDashboard />} />
       <Route path="/business" element={<BusinessPage />} />

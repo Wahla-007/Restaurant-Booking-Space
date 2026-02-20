@@ -313,6 +313,105 @@ export const AuthProvider = ({ children }) => {
   return { success: true };
  };
 
+ // --- Forgot Password Flow ---
+
+ const requestPasswordReset = async (email) => {
+  const cleanEmail = email.trim().toLowerCase();
+
+  // Check if user exists
+  const { data: users } = await supabase
+   .from("users")
+   .select("*")
+   .eq("email", cleanEmail)
+   .limit(1);
+
+  const user = users?.[0];
+  if (!user) {
+   return { success: false, message: "No account found with this email." };
+  }
+
+  // Generate OTP
+  const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
+  // Save OTP to DB
+  await supabase
+   .from("users")
+   .update({ verification_token: otp })
+   .eq("id", user.id);
+
+  // Send email
+  const SERVICE_ID = "service_wcykj6j";
+  const TEMPLATE_ID = "template_2ou7h3b";
+  const PUBLIC_KEY = "3cenvoR92dSsx7chn";
+
+  try {
+   await emailjs.send(
+    SERVICE_ID,
+    TEMPLATE_ID,
+    {
+     email: cleanEmail,
+     to_name: user.name || "User",
+     otp: otp,
+     time: new Date().toLocaleTimeString(),
+    },
+    PUBLIC_KEY,
+   );
+   return { success: true };
+  } catch (error) {
+   const errorMsg = error.text || error.message;
+   return { success: false, message: `Failed to send email: ${errorMsg}` };
+  }
+ };
+
+ const verifyResetOTP = async (email, otp) => {
+  const cleanEmail = email.trim().toLowerCase();
+
+  const { data: users } = await supabase
+   .from("users")
+   .select("*")
+   .eq("email", cleanEmail)
+   .limit(1);
+
+  const user = users?.[0];
+  if (!user) {
+   return { success: false, message: "Account not found." };
+  }
+
+  if (user.verification_token !== otp) {
+   return {
+    success: false,
+    message: "Invalid verification code. Please try again.",
+   };
+  }
+
+  return { success: true };
+ };
+
+ const resetPassword = async (email, newPassword) => {
+  const cleanEmail = email.trim().toLowerCase();
+
+  // Validate password strength
+  const passwordCheck = checkPasswordStrength(newPassword);
+  if (!passwordCheck.isValid) {
+   return { success: false, message: passwordCheck.message };
+  }
+
+  // Update password and clear token
+  const { error } = await supabase
+   .from("users")
+   .update({ password: newPassword, verification_token: null })
+   .eq("email", cleanEmail);
+
+  if (error) {
+   return {
+    success: false,
+    message: "Failed to reset password. Please try again.",
+   };
+  }
+
+  return { success: true };
+ };
+
  const logout = () => {
   setUser(null);
   localStorage.removeItem("session_v1");
@@ -328,6 +427,9 @@ export const AuthProvider = ({ children }) => {
     verifyAccount,
     requestLoginOTP,
     verifyLoginOTP,
+    requestPasswordReset,
+    verifyResetOTP,
+    resetPassword,
     logout,
    }}>
    {children}
