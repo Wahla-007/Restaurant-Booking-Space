@@ -35,10 +35,9 @@ export default function Navbar() {
        else if (user?.role === "business") navigate("/business-dashboard");
        else navigate("/");
       }}>
-      <div className="w-9 h-9 rounded-full bg-[#002b11] flex items-center justify-center">
-       <span className="text-white font-bold text-sm">LT</span>
-      </div>
-      <span className="text-[22px] font-bold tracking-tight text-[#002b11]">
+      <img src="/logo/logo.svg" alt="ReserveKaru Logo" className="w-10 h-8" />
+
+      <span className="text-[26px] font-[900] tracking-tight text-[#002b11]">
        ReserveKaru
       </span>
      </motion.div>
