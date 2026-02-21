@@ -148,7 +148,7 @@ function FeaturedCarousel({ featuredRestaurants, userCity }) {
       {featuredRestaurants.map((restaurant, index) => (
        <div
         key={restaurant.id}
-        className="min-w-[280px] sm:min-w-[300px] lg:min-w-[calc(25%-15px)] lg:max-w-[calc(25%-15px)] flex-shrink-0">
+        className="w-[280px] sm:w-[300px] lg:w-[calc(25%-15px)] shrink-0">
         <RestaurantCard restaurant={restaurant} index={index} />
        </div>
       ))}
