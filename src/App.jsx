@@ -9,6 +9,11 @@ import BusinessDashboard from "./pages/BusinessDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import BusinessPage from "./pages/BusinessPage";
 import ForgotPassword from "./pages/ForgotPassword";
+import Contact from "./pages/Contact";
+import Advertise from "./pages/Advertise";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import PageLoader from "./components/ui/PageLoader";
@@ -44,6 +49,11 @@ function App() {
       <Route path="/business-dashboard" element={<BusinessDashboard />} />
       <Route path="/super-admin" element={<SuperAdminDashboard />} />
       <Route path="/business" element={<BusinessPage />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/advertise" element={<Advertise />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="*" element={<NotFound />} />
      </Routes>
     </div>
    </ToastProvider>

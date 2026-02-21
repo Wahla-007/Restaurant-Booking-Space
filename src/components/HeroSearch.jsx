@@ -8,6 +8,8 @@ import {
  Star,
  TrendingUp,
  MapPin,
+ ArrowLeft,
+ X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -26,6 +28,7 @@ export default function HeroSearch({
  restaurants = [],
  userCity = "",
  onTabChange,
+ onRequestLocation,
 }) {
  const navigate = useNavigate();
  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -35,11 +38,36 @@ export default function HeroSearch({
  const [activeTab, setActiveTab] = useState("all");
  const [isFocused, setIsFocused] = useState(false);
  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+ const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+ const [mobileQuery, setMobileQuery] = useState("");
  const dropdownRef = useRef(null);
  const inputRef = useRef(null);
+ const mobileInputRef = useRef(null);
  const wrapperRef = useRef(null);
  const dateRef = useRef(null);
  const timeRef = useRef(null);
+
+ // Check if mobile viewport
+ const isMobile = () => window.innerWidth < 640;
+
+ // Lock body scroll when mobile overlay is open
+ useEffect(() => {
+  if (mobileSearchOpen) {
+   document.body.style.overflow = "hidden";
+  } else {
+   document.body.style.overflow = "";
+  }
+  return () => {
+   document.body.style.overflow = "";
+  };
+ }, [mobileSearchOpen]);
+
+ // Focus mobile input when overlay opens
+ useEffect(() => {
+  if (mobileSearchOpen && mobileInputRef.current) {
+   setTimeout(() => mobileInputRef.current?.focus(), 100);
+  }
+ }, [mobileSearchOpen]);
 
  // Close dropdown when clicking outside
  useEffect(() => {
@@ -131,6 +159,71 @@ export default function HeroSearch({
 
  const showDropdown = isFocused && dropdownResults.length > 0;
 
+ // Mobile search results (uses mobileQuery + activeTab filtering)
+ const mobileResults = useMemo(() => {
+  if (!restaurants.length) return [];
+  const q = mobileQuery.trim().toLowerCase();
+  let pool = [...restaurants];
+
+  // Apply tab-based sorting/filtering (same logic as desktop)
+  switch (activeTab) {
+   case "trending":
+    pool.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
+    break;
+   case "top-rated":
+    pool = pool
+     .filter((r) => r.rating && r.rating !== "New")
+     .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating));
+    break;
+   case "restaurants":
+    pool.sort((a, b) => a.name.localeCompare(b.name));
+    break;
+   case "nearby":
+    if (userCity) {
+     pool = pool.filter(
+      (r) => r.city?.toLowerCase() === userCity.toLowerCase(),
+     );
+    }
+    break;
+   case "all":
+   default:
+    pool.sort((a, b) => (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0));
+    break;
+  }
+
+  if (q) {
+   pool = pool.filter(
+    (r) =>
+     fuzzyMatch(r.name, q) ||
+     fuzzyMatch(r.cuisine, q) ||
+     fuzzyMatch(r.location, q),
+   );
+  }
+  return pool.slice(0, 20);
+ }, [mobileQuery, restaurants, activeTab, userCity]);
+
+ // Open mobile overlay
+ const openMobileSearch = () => {
+  if (isMobile()) {
+   setMobileQuery(query);
+   setMobileSearchOpen(true);
+   return true;
+  }
+  return false;
+ };
+
+ // Close mobile overlay
+ const closeMobileSearch = () => {
+  setMobileSearchOpen(false);
+  setMobileQuery("");
+ };
+
+ // Navigate from mobile overlay
+ const mobileNavigate = (restaurant) => {
+  closeMobileSearch();
+  navigate(`/restaurant/${restaurant.id}`);
+ };
+
  // Keyboard navigation
  const handleKeyDown = (e) => {
   if (!showDropdown) return;
@@ -211,6 +304,9 @@ export default function HeroSearch({
         onClick={() => {
          setActiveTab(cat.key);
          onTabChange?.(cat.key);
+         if (cat.key === "nearby" && !userCity) {
+          onRequestLocation?.();
+         }
          setIsFocused(true);
          inputRef.current?.focus();
         }}
@@ -249,7 +345,13 @@ export default function HeroSearch({
          "Places to go, restaurants, cuisines..."
         }
         value={query}
-        onFocus={() => setIsFocused(true)}
+        onFocus={(e) => {
+         if (openMobileSearch()) {
+          e.target.blur();
+          return;
+         }
+         setIsFocused(true);
+        }}
         onKeyDown={handleKeyDown}
         onChange={(e) => {
          const newQuery = e.target.value;
@@ -442,6 +544,123 @@ export default function HeroSearch({
      </label>
     </motion.div>
    </div>
+
+   {/* Mobile Full-Screen Search Overlay */}
+   <AnimatePresence>
+    {mobileSearchOpen && (
+     <motion.div
+      initial={{ opacity: 0, y: "100%" }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: "100%" }}
+      transition={{ type: "spring", damping: 28, stiffness: 300 }}
+      className="fixed inset-0 z-[9999] bg-white flex flex-col sm:hidden">
+      {/* Top Bar */}
+      <div className="flex items-center gap-3 px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3 border-b border-gray-100">
+       <button
+        onClick={closeMobileSearch}
+        className="p-2 -ml-2 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors"
+        aria-label="Close search">
+        <ArrowLeft size={22} className="text-[#002b11]" />
+       </button>
+       <div className="flex-1 relative">
+        <input
+         ref={mobileInputRef}
+         type="text"
+         placeholder="Places to go, restaurants, cuisines..."
+         value={mobileQuery}
+         onChange={(e) => setMobileQuery(e.target.value)}
+         className="w-full bg-transparent text-[16px] text-[#1a1a1a] placeholder:text-gray-400 py-2 pr-8 outline-none border-none focus:ring-0"
+        />
+        {mobileQuery && (
+         <button
+          onClick={() => {
+           setMobileQuery("");
+           mobileInputRef.current?.focus();
+          }}
+          className="absolute right-0 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100">
+          <X size={16} className="text-gray-400" />
+         </button>
+        )}
+       </div>
+       <Search size={20} className="text-gray-400 shrink-0" />
+      </div>
+
+      {/* Green accent line */}
+      <div className="h-[3px] bg-gradient-to-r from-[#00eb5b] via-[#00aa6c] to-[#002b11]" />
+
+      {/* Results area */}
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+       {/* Section Header */}
+       <div className="px-5 pt-5 pb-2">
+        <p className="text-xs font-bold text-[#002b11]/70 tracking-[0.08em] uppercase">
+         {mobileQuery.trim()
+          ? "Matching Restaurants"
+          : tabConfig[activeTab]?.label || "Popular Restaurants"}
+        </p>
+       </div>
+
+       {mobileResults.length > 0 ? (
+        <div className="pb-6">
+         {mobileResults.map((restaurant) => (
+          <button
+           key={restaurant.id}
+           onClick={() => mobileNavigate(restaurant)}
+           className="w-full flex items-center gap-4 px-5 py-3.5 text-left active:bg-gray-50 transition-colors">
+           {/* Restaurant Image */}
+           <div className="w-[60px] h-[60px] rounded-2xl overflow-hidden shrink-0 bg-gray-100 shadow-sm">
+            <img
+             src={
+              restaurant.images?.[0] ||
+              "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=200&q=60"
+             }
+             alt={restaurant.name}
+             className="w-full h-full object-cover"
+             loading="lazy"
+            />
+           </div>
+
+           {/* Info */}
+           <div className="flex-1 min-w-0">
+            <p className="text-[15px] font-bold text-[#002b11] truncate leading-snug">
+             {restaurant.name}
+            </p>
+            <div className="flex items-center gap-1.5 mt-1">
+             <MapPin size={12} className="text-gray-400 shrink-0" />
+             <p className="text-[13px] text-gray-500 truncate">
+              {restaurant.location || restaurant.cuisine}
+             </p>
+            </div>
+            {restaurant.cuisine && restaurant.location && (
+             <p className="text-[12px] text-gray-400 truncate mt-0.5">
+              {restaurant.cuisine}
+             </p>
+            )}
+           </div>
+
+           {/* Rating */}
+           {restaurant.rating && restaurant.rating !== "New" && (
+            <div className="flex items-center gap-1 shrink-0 bg-[#00aa6c]/10 px-2.5 py-1.5 rounded-full">
+             <Star size={12} className="text-[#00aa6c] fill-[#00aa6c]" />
+             <span className="text-xs font-bold text-[#00aa6c]">
+              {restaurant.rating}
+             </span>
+            </div>
+           )}
+          </button>
+         ))}
+        </div>
+       ) : mobileQuery.trim() ? (
+        <div className="flex flex-col items-center justify-center py-16 px-6">
+         <Search size={40} className="text-gray-200 mb-4" />
+         <p className="text-sm text-gray-400 text-center">
+          No restaurants found for "{mobileQuery}"
+         </p>
+        </div>
+       ) : null}
+      </div>
+     </motion.div>
+    )}
+   </AnimatePresence>
   </section>
  );
 }

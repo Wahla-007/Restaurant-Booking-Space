@@ -12,7 +12,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import AppDownloadPopup from "../components/AppDownloadPopup";
 import AdBanner from "../components/AdBanner";
-import LocationPrompt from "../components/LocationPrompt";
 import {
  Utensils,
  Wine,
@@ -186,19 +185,47 @@ export default function HomePage() {
  const [reviewFormOpen, setReviewFormOpen] = useState(false);
  const [userCity, setUserCity] = useState("");
  const [activeTab, setActiveTab] = useState("all");
- const [showLocationPrompt, setShowLocationPrompt] = useState(false);
  const debouncedQuery = useDebounce(searchQuery, 1000);
 
- // Check if user already has a cached city, otherwise show prompt
+ // Helper to detect city from geolocation
+ const detectCity = () => {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+   async (position) => {
+    try {
+     const { latitude, longitude } = position.coords;
+     const resp = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=en`,
+     );
+     const data = await resp.json();
+     const city =
+      data?.address?.city ||
+      data?.address?.town ||
+      data?.address?.village ||
+      data?.address?.county ||
+      "";
+     if (city) {
+      setUserCity(city);
+      localStorage.setItem("user-city", city);
+     }
+    } catch (err) {
+     console.error("Reverse geocoding failed:", err);
+    }
+   },
+   (err) => {
+    console.log("Geolocation denied or unavailable:", err.message);
+   },
+   { timeout: 10000, maximumAge: 300000 },
+  );
+ };
+
+ // Auto-detect user's city on mount
  useEffect(() => {
   const cachedCity = localStorage.getItem("user-city");
-  const dismissed = localStorage.getItem("location-prompt-dismissed");
   if (cachedCity) {
    setUserCity(cachedCity);
-  } else if (!dismissed) {
-   // Small delay so the page loads first before showing the bar
-   const timer = setTimeout(() => setShowLocationPrompt(true), 1500);
-   return () => clearTimeout(timer);
+  } else {
+   detectCity();
   }
  }, []);
 
@@ -367,17 +394,6 @@ export default function HomePage() {
 
  return (
   <div className="min-h-screen bg-white">
-   {/* Location Prompt Bar */}
-   {showLocationPrompt && (
-    <LocationPrompt
-     onLocationGranted={(city) => {
-      setUserCity(city);
-      setShowLocationPrompt(false);
-     }}
-     onDismiss={() => setShowLocationPrompt(false)}
-    />
-   )}
-
    {/* App Download Popup */}
    <AppDownloadPopup />
 
@@ -387,6 +403,7 @@ export default function HomePage() {
     restaurants={allRestaurants}
     userCity={userCity}
     onTabChange={(tab) => setActiveTab(tab)}
+    onRequestLocation={detectCity}
    />
 
    {/* Business CTA Banner */}
@@ -768,11 +785,17 @@ export default function HomePage() {
        </span>
       </div>
       <div className="flex items-center gap-8">
-       {["Privacy", "Terms", "Support", "Contact"].map((link) => (
+       {[
+        { label: "Privacy", to: "/privacy" },
+        { label: "Terms", to: "/terms" },
+        { label: "Advertise", to: "/advertise" },
+        { label: "Contact", to: "/contact" },
+       ].map((link) => (
         <Link
-         to={`/${link.toLowerCase()}`}
+         key={link.label}
+         to={link.to}
          className="text-xs cursor-pointer text-gray-400 hover:text-[#002b11] transition-colors font-medium">
-         {link}
+         {link.label}
         </Link>
        ))}
       </div>

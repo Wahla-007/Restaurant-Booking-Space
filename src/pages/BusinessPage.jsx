@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
  ChevronDown,
@@ -818,6 +818,21 @@ export default function BusinessPage() {
        <span className="text-lg font-bold tracking-tight text-[#002b11]">
         ReserveKaru
        </span>
+      </div>
+      <div className="flex items-center gap-8">
+       {[
+        { label: "Privacy", to: "/privacy" },
+        { label: "Terms", to: "/terms" },
+        { label: "Advertise", to: "/advertise" },
+        { label: "Contact", to: "/contact" },
+       ].map((link) => (
+        <Link
+         key={link.label}
+         to={link.to}
+         className="text-xs cursor-pointer text-gray-400 hover:text-[#002b11] transition-colors font-medium">
+         {link.label}
+        </Link>
+       ))}
       </div>
       <p className="text-xs text-gray-400">
        © 2026 ReserveKaru. All rights reserved.
