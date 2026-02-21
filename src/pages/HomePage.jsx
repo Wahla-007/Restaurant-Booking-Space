@@ -437,7 +437,7 @@ export default function HomePage() {
      </div>
 
      {/* Right — Content (50%) */}
-     <div className="w-full md:w-1/2 flex flex-col justify-center p-8 md:py-12 md:px-10">
+     <div className="w-full md:w-1/2 flex flex-col justify-center px-8 pb-8 md:py-12 md:px-10">
       <div className="flex items-center gap-2 mb-5">
        <img
         src="/logo/logo.svg"
@@ -449,11 +449,11 @@ export default function HomePage() {
        </span>
       </div>
 
-      <h2 className="text-4xl sm:text-5xl md:text-[56px] lg:text-[82px] font-[900] text-white leading-[0.8] tracking-tight mb-5">
+      <h2 className="text-4xl sm:text-5xl md:text-[56px] lg:text-[82px] font-[900] text-white md:leading-[0.8] tracking-tight mb-5">
        Grow Your <br /> Restaurant <br /> Business
       </h2>
 
-      <p className="text-white/60 text-base mb-8 max-w-md leading-relaxed">
+      <p className="text-white/60 text-base md:mb-8 mb-4 max-w-md leading-relaxed">
        List your restaurant, manage reservations, and reach thousands of diners.
       </p>
 
