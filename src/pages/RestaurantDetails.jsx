@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import LogoLoader from "../components/ui/LogoLoader";
 import { useNavigate, useParams } from "react-router-dom";
 import BookingWidget from "../components/BookingWidget";
 import ReviewModal from "../components/ReviewModal";
@@ -203,9 +204,11 @@ export default function RestaurantDetails() {
  if (loading)
   return (
    <div className="min-h-screen bg-white flex items-center justify-center">
-    <div className="flex flex-col items-center gap-3">
-     <div className="w-8 h-8 border-3 border-[#00aa6c] border-t-transparent rounded-full animate-spin" />
-     <span className="text-sm text-gray-400">Loading restaurant...</span>
+    <div className="flex flex-col items-center gap-5">
+     <LogoLoader size={72} />
+     <span className="text-[#002b11]/40 text-xs font-medium tracking-widest uppercase">
+      Loading restaurant
+     </span>
     </div>
    </div>
   );

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import LogoLoader from "../components/ui/LogoLoader";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../supabase";
 import { motion } from "framer-motion";
@@ -266,11 +267,11 @@ export default function BlogPost() {
  if (loading) {
   return (
    <div className="min-h-screen bg-white flex items-center justify-center">
-    <div className="flex flex-col items-center gap-4">
-     <div className="relative w-12 h-12">
-      <div className="absolute inset-0 rounded-full border-2 border-[#002b11]/10 animate-ping" />
-      <div className="absolute inset-0 rounded-full border-t-2 border-[#002b11] animate-spin" />
-     </div>
+    <div className="flex flex-col items-center gap-5">
+     <LogoLoader size={72} />
+     <p className="text-[#002b11]/40 text-xs font-medium tracking-widest uppercase">
+      Loading
+     </p>
     </div>
    </div>
   );
@@ -341,12 +342,12 @@ export default function BlogPost() {
      transition={{ duration: 0.5 }}>
      {/* Tags */}
      {blog.tags?.length > 0 && (
-      <div className="flex items-center gap-2 mb-5">
+      <div className="flex flex-wrap items-center gap-2 mb-5">
        {blog.tags.map((tag) => (
         <Link
          key={tag}
          to={`/blog?tag=${tag}`}
-         className="px-3 py-1 rounded-full bg-[#00aa6c]/10 text-[#00aa6c] text-xs font-bold hover:bg-[#00aa6c]/20 transition-colors">
+         className="px-3 py-1 rounded-full bg-[#00aa6c]/10 text-[#00aa6c] text-xs font-bold hover:bg-[#00aa6c]/20 transition-colors whitespace-nowrap">
          {tag}
         </Link>
        ))}

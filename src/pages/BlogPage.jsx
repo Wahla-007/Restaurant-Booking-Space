@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import LogoLoader from "../components/ui/LogoLoader";
 import { Link } from "react-router-dom";
 import { supabase } from "../supabase";
 import { motion } from "framer-motion";
@@ -73,13 +74,10 @@ export default function BlogPage() {
  if (loading) {
   return (
    <div className="min-h-screen bg-white flex items-center justify-center">
-    <div className="flex flex-col items-center gap-4">
-     <div className="relative w-12 h-12">
-      <div className="absolute inset-0 rounded-full border-2 border-[#002b11]/10 animate-ping" />
-      <div className="absolute inset-0 rounded-full border-t-2 border-[#002b11] animate-spin" />
-     </div>
-     <p className="text-[#002b11]/40 text-sm font-medium tracking-wide animate-pulse">
-      Loading...
+    <div className="flex flex-col items-center gap-5">
+     <LogoLoader size={72} />
+     <p className="text-[#002b11]/40 text-xs font-medium tracking-widest uppercase">
+      Loading
      </p>
     </div>
    </div>
@@ -116,7 +114,7 @@ export default function BlogPage() {
 
    {/* Search & Filter */}
    <div className="max-w-7xl mx-auto px-6 lg:px-8 -mt-7 relative z-20">
-    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-4 flex flex-col sm:flex-row items-center gap-4">
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
      <div className="relative flex-1 w-full">
       <Search
        size={18}
@@ -131,7 +129,7 @@ export default function BlogPage() {
       />
      </div>
      {allTags.length > 0 && (
-      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide shrink-0">
+      <div className="flex flex-wrap items-center gap-2 min-w-0">
        <button
         onClick={() => setSelectedTag("")}
         className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${

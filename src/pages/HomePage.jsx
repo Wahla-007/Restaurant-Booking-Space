@@ -12,6 +12,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import AppDownloadPopup from "../components/AppDownloadPopup";
 import AdBanner from "../components/AdBanner";
+import LogoLoader from "../components/ui/LogoLoader";
 import {
  Utensils,
  Wine,
@@ -412,13 +413,10 @@ export default function HomePage() {
  if (loading) {
   return (
    <div className="min-h-screen bg-white flex items-center justify-center">
-    <div className="flex flex-col items-center gap-4">
-     <div className="relative w-12 h-12">
-      <div className="absolute inset-0 rounded-full border-2 border-[#002b11]/10 animate-ping" />
-      <div className="absolute inset-0 rounded-full border-t-2 border-[#002b11] animate-spin" />
-     </div>
-     <p className="text-[#002b11]/40 text-sm font-medium tracking-wide animate-pulse">
-      Loading...
+    <div className="flex flex-col items-center gap-5">
+     <LogoLoader size={80} />
+     <p className="text-[#002b11]/40 text-xs font-medium tracking-widest uppercase">
+      Loading Restaurants
      </p>
     </div>
    </div>

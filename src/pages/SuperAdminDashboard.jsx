@@ -16,6 +16,7 @@ import AdminSupportTickets from "../components/admin/AdminSupportTickets";
 import AdminBannerAds from "../components/admin/AdminBannerAds";
 import AdminPayments from "../components/admin/AdminPayments";
 import AdminBlogs from "../components/admin/AdminBlogs";
+import LogoLoader from "../components/ui/LogoLoader";
 
 // Super admin email — change this to your admin email
 const SUPER_ADMIN_EMAIL = "khizarsyed4294@gmail.com";
@@ -339,10 +340,10 @@ export default function SuperAdminDashboard() {
   if (loading) {
    return (
     <div className="flex items-center justify-center py-32">
-     <div className="flex flex-col items-center gap-3">
-      <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-      <p className="text-slate-500 text-sm font-medium">
-       Loading admin data...
+     <div className="flex flex-col items-center gap-4">
+      <LogoLoader size={64} />
+      <p className="text-slate-500 text-xs font-medium tracking-widest uppercase">
+       Loading admin data
       </p>
      </div>
     </div>
