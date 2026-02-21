@@ -1,4 +1,4 @@
-import { Save, Upload, MapPin, Link } from "lucide-react";
+import { Save, Upload, MapPin, Link, Phone, Globe } from "lucide-react";
 import { useState } from "react";
 
 const RestaurantSettings = ({
@@ -114,6 +114,40 @@ const RestaurantSettings = ({
        placeholder="Describe your restaurant..."
        className="w-full px-4 py-3 bg-white text-slate-800 placeholder:text-slate-400 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all resize-none"
       />
+     </div>
+
+     {/* Phone & Website (Optional) */}
+     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-2">
+       <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+        <Phone className="w-3.5 h-3.5" />
+        Phone Number
+        <span className="text-slate-400 font-normal">(Optional)</span>
+       </label>
+       <input
+        type="tel"
+        name="phone_number"
+        value={restaurant.phone_number || ""}
+        onChange={onChange}
+        placeholder="e.g. +92 300 1234567"
+        className="w-full px-4 py-3 bg-white text-slate-800 placeholder:text-slate-400 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+       />
+      </div>
+      <div className="space-y-2">
+       <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+        <Globe className="w-3.5 h-3.5" />
+        Website URL
+        <span className="text-slate-400 font-normal">(Optional)</span>
+       </label>
+       <input
+        type="url"
+        name="website_url"
+        value={restaurant.website_url || ""}
+        onChange={onChange}
+        placeholder="e.g. https://myrestaurant.com"
+        className="w-full px-4 py-3 bg-white text-slate-800 placeholder:text-slate-400 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+       />
+      </div>
      </div>
 
      <div className="space-y-2">

@@ -15,6 +15,7 @@ import AdminWebReviews from "../components/admin/AdminWebReviews";
 import AdminSupportTickets from "../components/admin/AdminSupportTickets";
 import AdminBannerAds from "../components/admin/AdminBannerAds";
 import AdminPayments from "../components/admin/AdminPayments";
+import AdminBlogs from "../components/admin/AdminBlogs";
 
 // Super admin email — change this to your admin email
 const SUPER_ADMIN_EMAIL = "khizarsyed4294@gmail.com";
@@ -385,6 +386,8 @@ export default function SuperAdminDashboard() {
     return <AdminWebReviews />;
    case "Banner Ads":
     return <AdminBannerAds />;
+   case "Blog":
+    return <AdminBlogs />;
    case "Payments":
     return <AdminPayments />;
    case "Support":

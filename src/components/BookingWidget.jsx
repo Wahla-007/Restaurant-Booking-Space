@@ -312,7 +312,7 @@ export default function BookingWidget({ restaurant }) {
     className="glass"
     style={{
      padding: "2rem",
-     borderRadius: "var(--radius)",
+     borderRadius: "18px",
      position: "sticky",
      top: "100px",
     }}>

@@ -64,6 +64,8 @@ export default function BusinessDashboard() {
   closing_time: "23:00",
   tags: "",
   menu_highlights: [],
+  phone_number: "",
+  website_url: "",
  });
 
  // Ref for ReviewsManagement to trigger refresh
@@ -210,6 +212,8 @@ export default function BusinessDashboard() {
      closing_time: data.closing_time || "23:00",
      tags: (data.tags || []).join(", "),
      menu_highlights: data.menu?.highlights || [],
+     phone_number: data.phone_number || "",
+     website_url: data.website_url || "",
     });
    }
   } catch (err) {
@@ -356,6 +360,8 @@ export default function BusinessDashboard() {
      .map((t) => t.trim())
      .filter((t) => t),
     menu: { highlights: formData.menu_highlights },
+    phone_number: formData.phone_number || null,
+    website_url: formData.website_url || null,
    };
 
    if (restaurant) {

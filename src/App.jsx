@@ -14,6 +14,9 @@ import Advertise from "./pages/Advertise";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
+import UserProfile from "./pages/UserProfile";
+import BlogPage from "./pages/BlogPage";
+import BlogPost from "./pages/BlogPost";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import PageLoader from "./components/ui/PageLoader";
@@ -53,6 +56,9 @@ function App() {
       <Route path="/advertise" element={<Advertise />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
+      <Route path="/profile" element={<UserProfile />} />
+      <Route path="/blog" element={<BlogPage />} />
+      <Route path="/blog/:slug" element={<BlogPost />} />
       <Route path="*" element={<NotFound />} />
      </Routes>
     </div>

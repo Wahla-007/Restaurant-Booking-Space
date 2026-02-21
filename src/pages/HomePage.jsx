@@ -28,6 +28,7 @@ import {
  Heart,
  CircleCheck,
  MapPin,
+ BookOpen,
 } from "lucide-react";
 
 const cuisineCategories = [
@@ -185,6 +186,7 @@ export default function HomePage() {
  const [reviewFormOpen, setReviewFormOpen] = useState(false);
  const [userCity, setUserCity] = useState("");
  const [activeTab, setActiveTab] = useState("all");
+ const [latestBlog, setLatestBlog] = useState(null);
  const debouncedQuery = useDebounce(searchQuery, 1000);
 
  // Helper to detect city from geolocation
@@ -338,6 +340,27 @@ export default function HomePage() {
 
  useEffect(() => {
   fetchWebReviews();
+ }, []);
+
+ // Fetch latest published blog
+ useEffect(() => {
+  const fetchLatestBlog = async () => {
+   try {
+    const { data } = await supabase
+     .from("blogs")
+     .select(
+      "title, slug, excerpt, cover_image, published_at, tags, content, author_name",
+     )
+     .eq("is_published", true)
+     .order("published_at", { ascending: false })
+     .limit(1)
+     .single();
+    if (data) setLatestBlog(data);
+   } catch (err) {
+    console.error("Error fetching latest blog:", err);
+   }
+  };
+  fetchLatestBlog();
  }, []);
 
  useEffect(() => {
@@ -604,6 +627,63 @@ export default function HomePage() {
     </div>
    </section>
 
+   {/* Latest from Blog */}
+   {latestBlog && (
+    <section className="py-16 sm:py-20 bg-white">
+     <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <motion.div
+       initial={{ opacity: 0, y: 16 }}
+       whileInView={{ opacity: 1, y: 0 }}
+       viewport={{ once: true }}
+       transition={{ duration: 0.5 }}
+       className="bg-[#f7f7f7] rounded-3xl overflow-hidden">
+       <div className="grid grid-cols-1 md:grid-cols-2">
+        {/* Image */}
+        <div className="aspect-[4/3] md:aspect-auto md:min-h-[340px] overflow-hidden">
+         {latestBlog.cover_image ? (
+          <img
+           src={latestBlog.cover_image}
+           alt={latestBlog.title}
+           className="w-full h-full object-cover"
+          />
+         ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[#002b11] to-[#004d1f] flex items-center justify-center">
+           <BookOpen size={48} className="text-white/15" />
+          </div>
+         )}
+        </div>
+
+        {/* Content */}
+        <div className="flex flex-col justify-center px-8 py-10 md:px-12 md:py-14">
+         <div className="flex items-center gap-2 mb-4">
+          <img src="/logo/logo.svg" alt="logo" className="h-5 w-5" />
+          <span className="text-xs font-bold tracking-widest text-[#00aa6c] uppercase">
+           ReserveKaru Blog
+          </span>
+         </div>
+         <h3 className="text-2xl sm:text-3xl font-black text-[#002b11] tracking-tight leading-tight mb-4 line-clamp-2">
+          {latestBlog.title}
+         </h3>
+         {latestBlog.excerpt && (
+          <p className="text-gray-500 text-sm sm:text-base leading-relaxed mb-6 line-clamp-3">
+           {latestBlog.excerpt}
+          </p>
+         )}
+         <div>
+          <Link
+           to={`/blog/${latestBlog.slug}`}
+           className="inline-flex items-center gap-2 px-6 py-3 bg-[#002b11] text-white text-sm font-bold rounded-full hover:bg-[#004d1f] transition-colors">
+           Read Article
+           <ArrowRight size={15} />
+          </Link>
+         </div>
+        </div>
+       </div>
+      </motion.div>
+     </div>
+    </section>
+   )}
+
    {/* Why Choose Us */}
    <section id="about" className="py-16 sm:py-16 bg-[#f7f7f7]">
     <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -798,6 +878,7 @@ export default function HomePage() {
        {[
         { label: "Privacy", to: "/privacy" },
         { label: "Terms", to: "/terms" },
+        { label: "Blog", to: "/blog" },
         { label: "Advertise", to: "/advertise" },
         { label: "Contact", to: "/contact" },
        ].map((link) => (

@@ -13,6 +13,7 @@ import {
  ShieldCheck,
  Volume2,
  VolumeOff,
+ Newspaper,
 } from "lucide-react";
 import { isSoundEnabled, toggleSound } from "../../utils/notificationSound";
 import { useToast } from "../../context/ToastContext";
@@ -96,6 +97,12 @@ const AdminSidebar = ({ activeTab, setActiveTab, onLogout }) => {
      label="Payments"
      active={activeTab === "Payments"}
      onClick={() => setActiveTab("Payments")}
+    />
+    <SidebarItem
+     icon={Newspaper}
+     label="Blog"
+     active={activeTab === "Blog"}
+     onClick={() => setActiveTab("Blog")}
     />
     <SidebarItem
      icon={Headset}

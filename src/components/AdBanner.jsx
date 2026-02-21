@@ -100,7 +100,7 @@ const AdBanner = () => {
      <img
       src={banner.image_url}
       alt={banner.title || "Advertisement"}
-      className="w-full h-auto min-h-[120px] max-h-[320px] object-cover group-hover:scale-[1.01] transition-transform duration-500"
+      className="w-full h-auto min-h-[120px] max-h-[320px] object-fill group-hover:scale-[1.01] transition-transform duration-500"
      />
 
      {/* Gradient overlay with title */}

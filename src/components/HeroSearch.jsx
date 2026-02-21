@@ -301,6 +301,7 @@ export default function HeroSearch({
       return (
        <button
         key={cat.key}
+        
         onClick={() => {
          setActiveTab(cat.key);
          onTabChange?.(cat.key);
@@ -310,7 +311,7 @@ export default function HeroSearch({
          setIsFocused(true);
          inputRef.current?.focus();
         }}
-        className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-full transition-all duration-200 ${
+        className={`flex cursor-pointer items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-full transition-all duration-200 ${
          isActive
           ? "text-[#002b11] border-b-[3px] border-[#002b11] rounded-none px-4 pb-2"
           : "text-[#002b11]/50 hover:text-[#002b11]/80 hover:bg-[#002b11]/[0.03]"

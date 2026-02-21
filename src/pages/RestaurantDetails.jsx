@@ -21,6 +21,9 @@ import {
  ChevronLeft,
  ChevronRight,
  Check,
+ Globe,
+ Phone,
+ UtensilsCrossed,
 } from "lucide-react";
 import { trackView } from "../utils/analytics";
 
@@ -40,6 +43,7 @@ export default function RestaurantDetails() {
  const [verifiedUserIds, setVerifiedUserIds] = useState([]);
  const [activeTab, setActiveTab] = useState("overview");
  const [saved, setSaved] = useState(false);
+ const [mobileBookingOpen, setMobileBookingOpen] = useState(false);
 
  const tabs = [
   { id: "overview", label: "Overview" },
@@ -318,6 +322,48 @@ export default function RestaurantDetails() {
      </button>
     </div>
    </div>
+
+   {/* ── Quick Links (Website / Menu / Phone) ── */}
+   {(restaurant.website_url ||
+    restaurant.phone_number ||
+    restaurant.menu?.highlights?.length > 0) && (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+     <div className="flex items-center gap-6 py-4 border-b border-gray-100">
+      {restaurant.website_url && (
+       <a
+        href={
+         restaurant.website_url.startsWith("http")
+          ? restaurant.website_url
+          : `https://${restaurant.website_url}`
+        }
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 text-sm font-semibold text-[#002b11] hover:text-[#00aa6c] transition-colors cursor-pointer">
+        <Globe size={17} className="shrink-0" />
+        <span className="underline underline-offset-2">Website</span>
+       </a>
+      )}
+      {restaurant.menu?.highlights?.length > 0 && (
+       <button
+        onClick={() => scrollToSection("menu")}
+        className="flex items-center gap-2 text-sm font-semibold text-[#002b11] hover:text-[#00aa6c] transition-colors cursor-pointer">
+        <UtensilsCrossed size={17} className="shrink-0" />
+        <span className="underline underline-offset-2">Menu</span>
+       </button>
+      )}
+      {restaurant.phone_number && (
+       <a
+        href={`tel:${restaurant.phone_number}`}
+        className="flex items-center gap-2 text-sm font-semibold text-[#002b11] hover:text-[#00aa6c] transition-colors cursor-pointer">
+        <Phone size={17} className="shrink-0" />
+        <span className="underline underline-offset-2">
+         {restaurant.phone_number}
+        </span>
+       </a>
+      )}
+     </div>
+    </div>
+   )}
 
    {/* ── Tabs Navigation ── */}
    <div className="sticky top-[68px] z-30 bg-white border-b border-gray-200">
@@ -721,6 +767,57 @@ export default function RestaurantDetails() {
      </div>
     </div>
    </div>
+
+   {/* ── Mobile/Tablet Sticky Reserve Button ── */}
+   <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+    <div className="flex items-center justify-between gap-3">
+     <div>
+      <p className="text-lg font-bold text-[#002b11]">
+       {restaurant.name || "$$"}{" "}
+      </p>
+     </div>
+     <button
+      onClick={() => setMobileBookingOpen(true)}
+      className="px-7 py-3 bg-[#002b11] text-white font-bold text-sm rounded-full hover:bg-[#004d1f] transition-colors shadow-lg cursor-pointer">
+      Reserve a Table
+     </button>
+    </div>
+   </div>
+
+   {/* ── Mobile/Tablet Booking Sheet ── */}
+   <AnimatePresence>
+    {mobileBookingOpen && (
+     <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={() => setMobileBookingOpen(false)}
+      className="lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
+      <motion.div
+       initial={{ y: "100%" }}
+       animate={{ y: 0 }}
+       exit={{ y: "100%" }}
+       transition={{ type: "spring", damping: 30, stiffness: 300 }}
+       onClick={(e) => e.stopPropagation()}
+       className="absolute inset-0 top-[env(safe-area-inset-top,0px)] bg-white flex flex-col">
+       <div className="flex items-center justify-between p-4 border-b border-gray-100 shrink-0">
+        <h3 className="text-lg font-bold text-[#002b11]">Reserve a Table</h3>
+        <button
+         onClick={() => setMobileBookingOpen(false)}
+         className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors cursor-pointer">
+         <XIcon size={16} />
+        </button>
+       </div>
+       <div className="flex-1 overflow-y-auto p-4 pb-8">
+        <BookingWidget restaurant={restaurant} />
+       </div>
+      </motion.div>
+     </motion.div>
+    )}
+   </AnimatePresence>
+
+   {/* Add bottom padding on mobile so content isn't hidden behind sticky bar */}
+   <div className="lg:hidden h-20" />
 
    {/* ── Image Lightbox ── */}
    <AnimatePresence>
