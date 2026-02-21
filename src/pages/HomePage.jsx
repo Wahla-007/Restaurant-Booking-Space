@@ -219,13 +219,23 @@ export default function HomePage() {
   );
  };
 
- // Auto-detect user's city on mount
+ // Auto-detect user's city on mount (only if permission already granted)
  useEffect(() => {
   const cachedCity = localStorage.getItem("user-city");
   if (cachedCity) {
    setUserCity(cachedCity);
-  } else {
-   detectCity();
+  } else if (navigator.permissions) {
+   // Only auto-request if user previously granted permission
+   navigator.permissions
+    .query({ name: "geolocation" })
+    .then((result) => {
+     if (result.state === "granted") {
+      detectCity();
+     }
+    })
+    .catch(() => {
+     // permissions API not supported, skip auto-detect
+    });
   }
  }, []);
 
